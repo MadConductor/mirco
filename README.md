@@ -1,3 +1,6 @@
+# MIRCO
+a very programmable MIDI thing.
+
 ## ???
 
 Install `bison` and `flex`.
