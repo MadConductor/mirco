@@ -1,0 +1,13 @@
+
+
+sequence seq1(A){
+    A, A, A, A
+}
+
+sequence seq3() {
+    C3, C#2, C3, C1
+}
+
+default: seq1(Cb2)
+auto: seq1(seq3())
+C4: seq3()

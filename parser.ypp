@@ -1,0 +1,158 @@
+/* Code section */
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <map>
+#include <vector>
+#include "../src/engine.hpp"
+
+extern int yylineno;
+extern int yylex();
+extern int yyparse();
+extern FILE *yyin;
+
+void yyerror(const char *s) {
+	fprintf(stderr, "Error: (line %d) %s\n", yylineno, s);
+	exit(1);
+}
+
+
+Engine engine;
+%}
+
+%union {
+  int ival;
+  float fval;
+  int nval;
+  char *sval;
+  char *idval;
+}
+
+%token DEFAULT AUTO SEQUENCE
+
+%token <ival>  INT
+%token <idval>  IDENTIFIER
+%token <fval>  FLOAT
+%token <nval>  NOTE
+%token <sval>  STRING
+
+%left '+' '-'
+%left '*' '/'
+
+%locations
+%define parse.error verbose
+
+%start exp
+
+%% 
+
+definition_args: 
+  definition_args ',' IDENTIFIER {
+    std::cout << "idarg" << std::endl;
+    engine.addDefinitionArgument($3);
+  }
+  | IDENTIFIER {
+    std::cout << "idarg" << std::endl;
+    engine.addDefinitionArgument($1);
+  }
+  |  {
+    std::cout << "noarg" << std::endl;
+  }
+;
+
+definition_body: 
+  definition_body ',' IDENTIFIER {
+    engine.addDefinitionListItem(SequenceItem($3));
+  }
+  | definition_body ',' NOTE {
+    Note *note = new Note((uint8_t)$3, (uint8_t)120);
+    engine.addDefinitionListItem(SequenceItem(*note));
+  }
+  | definition_body ',' call {
+  }
+  | IDENTIFIER {
+    engine.addDefinitionListItem(SequenceItem($1));
+  }
+  | NOTE {
+    Note *note = new Note((uint8_t)$1, (uint8_t)120);
+    engine.addDefinitionListItem(SequenceItem(*note));
+  }
+  | call {
+  }  
+  | {
+    std::cout << "bison found an empty list " << std::endl;
+  }
+;
+
+definition: 
+  SEQUENCE IDENTIFIER '(' {
+    engine.startDefinition("sequence", $2);
+  } definition_args ')' '{' definition_body '}' {
+    engine.endDefinition();
+  }
+;
+
+call_args: 
+  call_args ',' IDENTIFIER {
+    engine.addCallArgument(SequenceItem($3));
+  }
+  | call_args ',' NOTE {
+    Note *note = new Note((uint8_t)$3, (uint8_t)120);
+    engine.addCallArgument(SequenceItem(*note));
+  }
+  | call_args ',' call {
+  }
+  | IDENTIFIER {
+    engine.addCallArgument(SequenceItem($1));
+  }
+  | NOTE {
+    Note *note = new Note((uint8_t)$1, (uint8_t)120);
+    engine.addCallArgument(SequenceItem(*note));  
+  }
+  | call {
+  }  
+  | {
+    std::cout << "bison found an empty list " << std::endl;
+  }
+;
+
+call:
+  IDENTIFIER '(' {
+    engine.startCall($1);
+  } call_args ')' {
+    engine.endCall();
+  }
+;
+
+map_target:
+  NOTE {
+    engine.startMapping($1);
+  }
+  | AUTO {
+    engine.startMapping(-1);
+  }
+  | DEFAULT {
+    engine.startMapping(-2);
+  }
+;
+mapping: 
+  map_target ':' {
+    std::cout << "bison found a mapping"  << std::endl;
+  } call {
+    engine.endMapping();
+  }
+;
+
+
+exp:   
+  exp definition {
+  }
+| exp mapping {
+  }
+| definition {
+  }
+| mapping {
+  }
+;
+%%
