@@ -66,12 +66,10 @@ void Engine::addDefinitionListItem(SequenceItem item) {
 };
 
 void Engine::endDefinition() {
-    printf("%p\n", definitionStack);
     Definition definition = *(definitionStack.back());
 
     // only one definition type rn
     Sequence sequence(definition);
-
     ScopeItem scopeItem(sequence);
     scope[definition.identifier] = scopeItem;
     definitionStack.pop_back();

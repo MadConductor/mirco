@@ -49,15 +49,12 @@ Engine engine;
 
 definition_args: 
   definition_args ',' IDENTIFIER {
-    std::cout << "idarg" << std::endl;
     engine.addDefinitionArgument($3);
   }
   | IDENTIFIER {
-    std::cout << "idarg" << std::endl;
     engine.addDefinitionArgument($1);
   }
   |  {
-    std::cout << "noarg" << std::endl;
   }
 ;
 
@@ -81,7 +78,6 @@ definition_body:
   | call {
   }  
   | {
-    std::cout << "bison found an empty list " << std::endl;
   }
 ;
 
@@ -113,7 +109,6 @@ call_args:
   | call {
   }  
   | {
-    std::cout << "bison found an empty list " << std::endl;
   }
 ;
 
@@ -138,7 +133,6 @@ map_target:
 ;
 mapping: 
   map_target ':' {
-    std::cout << "bison found a mapping"  << std::endl;
   } call {
     engine.endMapping();
   }
