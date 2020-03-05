@@ -6,6 +6,8 @@
 #include <vector>
 using namespace std; 
 
+extern void yyerror(const char *s);
+
 class SequenceItem; 
 class Definition; 
 class Call; 
@@ -27,7 +29,7 @@ class Sequence {
     Sequence(Call c);
     Sequence() = default;
 
-    void resolveArguments(vector<SequenceItem> initArgs);
+    void resolveArguments(Call call);
 };
 
 class SequenceItem {
@@ -54,8 +56,8 @@ class Definition {
   public: 
     string type;
     string identifier;
-    vector<string> arguments;
-    vector<SequenceItem> body;
+    vector<string> *arguments = new vector<string>{};
+    vector<SequenceItem> *body = new vector<SequenceItem>{};
   
   Definition(string t, string i);
 };
@@ -63,7 +65,7 @@ class Definition {
 class Call { 
   public: 
     string identifier;
-    vector<SequenceItem> arguments;
+    vector<SequenceItem> *arguments = new vector<SequenceItem>{};
   
   Call(string i);
 };

@@ -1,6 +1,6 @@
 
 
-sequence seq1(A){
+sequence seq1(A, B){
     A, A, A, A
 }
 
@@ -8,6 +8,6 @@ sequence seq3() {
     C3, C#2, C3, C1
 }
 
-default: seq1(Cb2)
-auto: seq1(seq3())
+default: seq1(Cb2, Cb2)
+auto: seq1(seq3(), Cb2)
 C4: seq3()

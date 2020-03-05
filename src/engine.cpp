@@ -27,21 +27,21 @@ void Engine::endCall() {
     // only one call type rn
     ;
     Sequence sequence = scope[call.identifier].sequence;
-    sequence.resolveArguments(call.arguments);
+    sequence.resolveArguments(call);
     SequenceItem seqItem(sequence); 
     // add to next call?
     if (!callStack.empty()) {
         currentCall = callStack.back();
-        currentCall->arguments.push_back(seqItem);
+        currentCall->arguments->push_back(seqItem);
     } else if (!definitionStack.empty()) {
-        currentDefinition->body.push_back(seqItem);
+        currentDefinition->body->push_back(seqItem);
     } else if (currentMapping > -3) {
         addMappingTarget(sequence);
     }
 };
 
 void Engine::addCallArgument(SequenceItem arg){
-    currentCall->arguments.push_back(arg);
+    currentCall->arguments->push_back(arg);
 };
 
 
@@ -52,11 +52,17 @@ void Engine::startDefinition(string type, string id){
 };
 
 void Engine::addDefinitionArgument(string id){
-    currentDefinition->arguments.push_back(id);
+    vector<string> *arguments = currentDefinition->arguments;
+    for (int i = 0; i < arguments->size(); i++) {
+        if(id == (*arguments)[i]) {
+            yyerror("Arguments require unique identifiers.");
+        }
+    }
+    arguments->push_back(id);
 };
 
 void Engine::addDefinitionListItem(SequenceItem item) {
-    currentDefinition->body.push_back(item);
+    currentDefinition->body->push_back(item);
 };
 
 void Engine::endDefinition() {
@@ -104,18 +110,21 @@ SequenceItem::SequenceItem(Note n)
 };
 
 Sequence::Sequence(Definition d) 
-    : items(d.body), args(d.arguments) {
+    : items(*d.body), args(*d.arguments) {
 }
 
 Sequence::Sequence(Call c) {
 }
 
-void Sequence::resolveArguments(vector<SequenceItem> initArgs) {
-    map<string, SequenceItem> argMap;
-    for(int i = 0; i < args.size(); i++) {
-        argMap[args[i]] = initArgs[i];
+void Sequence::resolveArguments(Call call) {
+    if (call.arguments->size() != args.size()) {
+        yyerror(("Wrong number of arguments supplied to:" + call.identifier).c_str());
     }
-    for(int i = 0; i < items.size(); i++) {
+    map<string, SequenceItem> argMap;
+    for  (int i = 0; i < args.size(); i++) {
+        argMap[args[i]] = (*call.arguments)[i];
+    }
+    for (int i = 0; i < items.size(); i++) {
         SequenceItem item = items[i];
         if (!item.identifier.empty()) {
             items[i] = argMap[item.identifier];
