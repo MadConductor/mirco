@@ -28,7 +28,7 @@ void Engine::endCall() {
     ;
     Sequence sequence = scope[call.identifier].sequence;
     sequence.resolveArguments(call);
-    SequenceItem seqItem(sequence); 
+    Sequence *seqItem = new Sequence(sequence); 
     // add to next call?
     if (!callStack.empty()) {
         currentCall = callStack.back();
@@ -40,7 +40,7 @@ void Engine::endCall() {
     }
 };
 
-void Engine::addCallArgument(SequenceItem arg){
+void Engine::addCallArgument(Sequence *arg){
     currentCall->arguments->push_back(arg);
 };
 
@@ -61,7 +61,7 @@ void Engine::addDefinitionArgument(string id){
     arguments->push_back(id);
 };
 
-void Engine::addDefinitionListItem(SequenceItem item) {
+void Engine::addDefinitionListItem(Sequence *item) {
     currentDefinition->body->push_back(item);
 };
 
@@ -69,9 +69,9 @@ void Engine::endDefinition() {
     Definition definition = *(definitionStack.back());
 
     // only one definition type rn
-    Sequence sequence(definition);
-    ScopeItem scopeItem(sequence);
-    scope[definition.identifier] = scopeItem;
+    Sequence *sequence = new Sequence(definition);
+    ScopeItem *scopeItem = new ScopeItem(*sequence);
+    scope[definition.identifier] = *scopeItem;
     definitionStack.pop_back();
 
     if (!definitionStack.empty()) {
@@ -88,44 +88,104 @@ void Engine::addMappingTarget(Sequence s){
 };
 
 void Engine::endMapping(){
+    string seqString = mapping[currentMapping].toString();
+    printf("Found Mapping to Sequence:\n");
+    printf(seqString.c_str());
+    printf("\n");
     currentMapping = -3;
 };
 
 Note::Note(uint8_t k, uint8_t v) 
     : key(k), vel(v) {
+    resolved = true;
 };
+
+
+Note::Note(string s) {
+    int noteVal = noteToValueMap[s.substr(0,1)];
+    int secIdx = 1;
+    string secString = s.substr(secIdx,1);
+
+    if (secString == "#") {
+      noteVal += 1;
+      secIdx++;
+    }
+    if (secString == "b") {
+      noteVal -= 1;
+      secIdx++;
+    }
+
+    int octave = 1 + std::stoi(s.substr(secIdx, 1));
+    int octaveOffset = 12 * octave;
+    noteVal += octaveOffset;
+    resolved = true;
+    key = noteVal;
+    vel = 120;
+}
+
+string Note::toString() {
+    int noteVal = key % 12;
+    int octave = ((key - noteVal) / 12) - 1;
+    string note = valueToNoteMap[noteVal];
+    note.append(to_string(octave));
+    return note;
+}
 	
-SequenceItem::SequenceItem(string i) 
-    : identifier(i) {
+Identifier::Identifier(string id) 
+    : identifier(id) {
+    resolved = false;
 };
 
-SequenceItem::SequenceItem(Sequence s)
-    : sequence(s) {
-};
-
-SequenceItem::SequenceItem(Note n) 
-    : note(n) {
-};
+Sequence *Identifier::resolveSelf(map<string, Sequence *> argMap) {
+    Sequence *res = argMap[identifier];
+    return res;
+}
 
 Sequence::Sequence(Definition d) 
-    : items(*d.body), args(*d.arguments) {
+    : children(*d.body), args(*d.arguments) {
+    resolved = true;
 }
 
 Sequence::Sequence(Call c) {
+    resolved = true;
 }
+
+void Sequence::resolveSelf(map<string, Sequence *> argMap) {
+    yyerror("Already resolved.");
+}    void toString();
 
 void Sequence::resolveArguments(Call call) {
     if (call.arguments->size() != args.size()) {
         yyerror(("Wrong number of arguments supplied to:" + call.identifier).c_str());
     }
-    map<string, SequenceItem> argMap;
+    map<string, Sequence *> argMap;
     for  (int i = 0; i < args.size(); i++) {
         argMap[args[i]] = (*call.arguments)[i];
     }
-    for (int i = 0; i < items.size(); i++) {
-        SequenceItem item = items[i];
-        if (!item.identifier.empty()) {
-            items[i] = argMap[item.identifier];
+    for (int i = 0; i < children.size(); i++) {
+        Sequence *item = children.at(i);
+        if (!item->resolved) {
+            Identifier *id = dynamic_cast<Identifier*>(item); // TODO: Use Interfaces for this shit is fucky.
+            children[i] = id->resolveSelf(argMap);
         }
     }
+}
+
+string Sequence::toString() {
+    string res = "";
+    for (int i=0; i<children.size(); i++) {
+        Note *note = dynamic_cast<Note*>(children[i]);
+        if(note != nullptr) {
+            res.append(note->toString());
+        } else {
+            Identifier *id = dynamic_cast<Identifier*>(children[i]);
+            if(id != nullptr) {
+                res.append(id->toString());
+            } else {
+                res.append(children[i]->toString());
+            }
+        }
+        res.append(" ");
+    }
+    return res;
 }

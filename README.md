@@ -1,7 +1,8 @@
 # MIRCO
-a very programmable MIDI thing.
+Mirco is a MIDI sequence definition language, it takes midi input and maps simple input notes to more complex patterns.
+Defined sequences can be parameterised and reused, allowing the easy creation of complex, variative patterns.
 
-## ???
+## Setup
 
 Install `bison` and `flex`.
 

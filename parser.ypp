@@ -24,7 +24,7 @@ Engine engine;
 %union {
   int ival;
   float fval;
-  int nval;
+  char *nval;
   char *sval;
   char *idval;
 }
@@ -60,20 +60,22 @@ definition_args:
 
 definition_body: 
   definition_body ',' IDENTIFIER {
-    engine.addDefinitionListItem(SequenceItem($3));
+    Identifier *id = new Identifier($3);
+    engine.addDefinitionListItem(id);
   }
   | definition_body ',' NOTE {
-    Note *note = new Note((uint8_t)$3, (uint8_t)120);
-    engine.addDefinitionListItem(SequenceItem(*note));
+    Note *note = new Note($3);
+    engine.addDefinitionListItem(note);
   }
   | definition_body ',' call {
   }
   | IDENTIFIER {
-    engine.addDefinitionListItem(SequenceItem($1));
-  }
+    Identifier *id = new Identifier($1);
+    engine.addDefinitionListItem(id);  
+  } 
   | NOTE {
-    Note *note = new Note((uint8_t)$1, (uint8_t)120);
-    engine.addDefinitionListItem(SequenceItem(*note));
+    Note *note = new Note($1);
+    engine.addDefinitionListItem(note);
   }
   | call {
   }  
@@ -91,20 +93,22 @@ definition:
 
 call_args: 
   call_args ',' IDENTIFIER {
-    engine.addCallArgument(SequenceItem($3));
+    Identifier *id = new Identifier($3);
+    engine.addCallArgument(id);
   }
   | call_args ',' NOTE {
-    Note *note = new Note((uint8_t)$3, (uint8_t)120);
-    engine.addCallArgument(SequenceItem(*note));
+    Note *note = new Note($3);
+    engine.addCallArgument(note);
   }
   | call_args ',' call {
   }
   | IDENTIFIER {
-    engine.addCallArgument(SequenceItem($1));
+    Identifier *id = new Identifier($1);
+    engine.addCallArgument(id);
   }
   | NOTE {
-    Note *note = new Note((uint8_t)$1, (uint8_t)120);
-    engine.addCallArgument(SequenceItem(*note));  
+    Note *note = new Note($1);
+    engine.addCallArgument(note);  
   }
   | call {
   }  
@@ -122,7 +126,8 @@ call:
 
 map_target:
   NOTE {
-    engine.startMapping($1);
+    Note *note = new Note($1);
+    engine.startMapping(note->key);
   }
   | AUTO {
     engine.startMapping(-1);

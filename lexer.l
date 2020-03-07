@@ -4,35 +4,6 @@
   #include "parser.hpp"
   using namespace std;
 
-  std::map<string, int> noteMap = {
-		{"C",0},
-		{"D",2},
-		{"E",4},
-		{"F",5},
-		{"G",7},
-		{"A",9},
-		{"B",11},
-		{"H",11}
-  };
-
-  int parseNote(string s) {
-    int noteVal = noteMap[s.substr(0,1)];
-    int secIdx = 1;
-    string secString = s.substr(secIdx,1);
-
-    if (secString == "#") {
-      noteVal += 1;
-      secIdx++;
-    }
-    if (secString == "b") {
-      noteVal -= 1;
-      secIdx++;
-    }
-
-    int octave = 1 + std::stoi(s.substr(secIdx, 1));
-    int octaveOffset = 12 * octave;
-    return noteVal + octaveOffset;
-  }
 %}
 
 %option yylineno
@@ -60,7 +31,7 @@ auto            { return AUTO; }
 }
 
 {NOTE}    {
-  yylval.nval = parseNote(yytext); 
+  yylval.nval = yytext; 
   return NOTE;
 }
 
