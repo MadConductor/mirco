@@ -1,10 +1,17 @@
-#include "engine.hpp"
+#include "lang.hpp"
 
 Definition::Definition(string t, string i) 
     : type(t), identifier(i) {
 };
 
-Call::Call(string i) 
+void Definition::finalizeToScope(map<string, ScopeItem> &scope) {
+    // only one definition type rn
+    Sequence *sequence = new Sequence(*this);
+    ScopeItem *scopeItem = new ScopeItem(*sequence);
+    scope[this->identifier] = *scopeItem;
+}
+
+Call::Call(string i) // Not sure if this will be a struct in the end, lets see.
     : identifier(i) {
 };
 
@@ -24,20 +31,25 @@ void Engine::startCall(string id){
 void Engine::endCall() {
     Call call = *(callStack.back());
     callStack.pop_back();
+
     // only one call type rn
-    ;
+    // TODO: Prevent unknown seq call
     Sequence sequence = scope[call.identifier].sequence;
     sequence.resolveArguments(call);
     Sequence *seqItem = new Sequence(sequence); 
+
     // add to next call?
     if (!callStack.empty()) {
         currentCall = callStack.back();
         currentCall->arguments->push_back(seqItem);
+    // add to open definition?
     } else if (!definitionStack.empty()) {
         currentDefinition->body->push_back(seqItem);
+    // add to open mapping?
     } else if (currentMapping > -3) {
         addMappingTarget(sequence);
     }
+    // lost in the void of nothing being done with it.
 };
 
 void Engine::addCallArgument(Sequence *arg){
@@ -66,12 +78,8 @@ void Engine::addDefinitionListItem(Sequence *item) {
 };
 
 void Engine::endDefinition() {
-    Definition definition = *(definitionStack.back());
-
-    // only one definition type rn
-    Sequence *sequence = new Sequence(definition);
-    ScopeItem *scopeItem = new ScopeItem(*sequence);
-    scope[definition.identifier] = *scopeItem;
+    Definition *definition = definitionStack.back();
+    definition->finalizeToScope(scope);
     definitionStack.pop_back();
 
     if (!definitionStack.empty()) {
@@ -100,11 +108,36 @@ Note::Note(uint8_t k, uint8_t v)
     resolved = true;
 };
 
+std::map<string, int> Note::noteToValueMap = {
+  {"C", 0},
+  {"D", 2},
+  {"E", 4},
+  {"F", 5},
+  {"G", 7},
+  {"A", 9},
+  {"B", 11},
+  {"H", 11}
+};
+
+std::map<int, string> Note::valueToNoteMap = {
+  {0, "C"},
+  {1, "C#"},
+  {2, "D"},
+  {3, "D#"},
+  {4, "E"},
+  {5, "F"},
+  {6, "F#"},
+  {7, "G"},
+  {8, "G#"},
+  {9, "A"},
+  {10, "A#"},
+  {11, "B"},
+};
 
 Note::Note(string s) {
-    int noteVal = noteToValueMap[s.substr(0,1)];
+    int noteVal = noteToValueMap[s.substr(0, 1)];
     int secIdx = 1;
-    string secString = s.substr(secIdx,1);
+    string secString = s.substr(secIdx, 1);
 
     if (secString == "#") {
       noteVal += 1;
@@ -115,9 +148,10 @@ Note::Note(string s) {
       secIdx++;
     }
 
-    int octave = 1 + std::stoi(s.substr(secIdx, 1));
+    int octave = 1 + stoi(s.substr(secIdx, 1));
     int octaveOffset = 12 * octave;
     noteVal += octaveOffset;
+
     resolved = true;
     key = noteVal;
     vel = 120;
@@ -152,11 +186,11 @@ Sequence::Sequence(Call c) {
 
 void Sequence::resolveSelf(map<string, Sequence *> argMap) {
     yyerror("Already resolved.");
-}    void toString();
+}
 
 void Sequence::resolveArguments(Call call) {
     if (call.arguments->size() != args.size()) {
-        yyerror(("Wrong number of arguments supplied to:" + call.identifier).c_str());
+        yyerror(("Wrong number of arguments supplied to: " + call.identifier).c_str());
     }
     map<string, Sequence *> argMap;
     for  (int i = 0; i < args.size(); i++) {
@@ -174,7 +208,7 @@ void Sequence::resolveArguments(Call call) {
 string Sequence::toString() {
     string res = "";
     for (int i=0; i<children.size(); i++) {
-        Note *note = dynamic_cast<Note*>(children[i]);
+        Note *note = dynamic_cast<Note*>(children[i]); // ditto
         if(note != nullptr) {
             res.append(note->toString());
         } else {

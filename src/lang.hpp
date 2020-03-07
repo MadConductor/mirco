@@ -31,30 +31,8 @@ class Note : public Sequence {
 	public:
 		uint8_t key;
 		uint8_t vel;
-    std::map<string, int> noteToValueMap = {
-      {"C", 0},
-      {"D", 2},
-      {"E", 4},
-      {"F", 5},
-      {"G", 7},
-      {"A", 9},
-      {"B", 11},
-      {"H", 11}
-    };
-    std::map<int, string> valueToNoteMap = {
-      {0, "C"},
-      {1, "C#"},
-      {2, "D"},
-      {3, "D#"},
-      {4, "E"},
-      {5, "F"},
-      {6, "F#"},
-      {7, "G"},
-      {8, "G#"},
-      {9, "A"},
-      {10, "A#"},
-      {11, "B"},
-    };
+    static std::map<string, int> noteToValueMap;
+    static std::map<int, string> valueToNoteMap;
 
     Note(uint8_t k, uint8_t v);
     Note(string s);
@@ -81,13 +59,14 @@ class ScopeItem {
 };
 
 class Definition { 
-  public: 
+  public:
     string type;
     string identifier;
     vector<string> *arguments = new vector<string>{};
     vector<Sequence *> *body = new vector<Sequence *>{};
   
   Definition(string t, string i);
+  void finalizeToScope(map<string, ScopeItem> &scope);
 };
 
 class Call { 
@@ -106,9 +85,7 @@ class Engine { // Sequencer Definition Language Engine
     Call *currentCall;
     map<int, Sequence> mapping;
     int currentMapping;
-
     map<string, ScopeItem> scope;
-
 
     Engine();
     void startDefinition(string type, string id);
