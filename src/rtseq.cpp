@@ -9,13 +9,13 @@ public:
 };
 
 struct RtEventResult{
-  RtEvent * next;
+  RtEvent *next;
   uint_fast32_t sleeptime;
 };
 
 class RtNoteEvent : RtEvent{
 private:
-  RtEvent * next;
+  RtEvent *next;
   uint_fast32_t sleeptime;
   //compiled midi Message
 
