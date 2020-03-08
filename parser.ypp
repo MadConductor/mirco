@@ -5,7 +5,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
-#include "../src/engine.hpp"
+#include "../src/lang.hpp"
 
 extern int yylineno;
 extern int yylex();

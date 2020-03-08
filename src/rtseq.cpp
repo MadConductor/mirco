@@ -56,7 +56,7 @@ public:
 
 
 struct RtEventResult{
-  RtEvent * next;
+  RtEvent *next;
   uint_fast32_t sleeptime;
 };
 
@@ -66,7 +66,7 @@ struct RtEventResult{
 
 class RtNoteEvent : RtEvent{
 private:
-  RtEvent * next;
+  RtEvent *next;
   uint_fast32_t sleeptime;
   const unsigned char message[3];
   //std::vector<unsigned char> message;
