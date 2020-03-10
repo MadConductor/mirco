@@ -103,11 +103,6 @@ void Engine::endMapping(){
     currentMapping = -3;
 };
 
-Note::Note(uint8_t k, uint8_t v) 
-    : key(k), vel(v) {
-    resolved = true;
-};
-
 std::map<string, int> Note::noteToValueMap = {
   {"C", 0},
   {"D", 2},
@@ -134,27 +129,41 @@ std::map<int, string> Note::valueToNoteMap = {
   {11, "B"},
 };
 
+Note::Note(uint8_t k, uint8_t v) 
+    : key(k), vel(v) {
+    resolved = true;
+};
+
 Note::Note(string s) {
     int noteVal = noteToValueMap[s.substr(0, 1)];
-    int secIdx = 1;
-    string secString = s.substr(secIdx, 1);
+    int i = 1;
 
-    if (secString == "#") {
+    if (s[i] == '#') {
       noteVal += 1;
-      secIdx++;
+      i++;
     }
-    if (secString == "b") {
+    if (s[i] == 'b') {
       noteVal -= 1;
-      secIdx++;
+      i++;
     }
 
-    int octave = 1 + stoi(s.substr(secIdx, 1));
+    int octave = 1 + stoi(s.substr(i, 1));
     int octaveOffset = 12 * octave;
     noteVal += octaveOffset;
 
-    resolved = true;
     key = noteVal;
-    vel = 120;
+    vel = 127;
+    if (s.length() > i) {
+        i++;
+        if (s[i] == ':') {
+            vel = stoi(s.substr(i + 1));
+            if (vel > 127) {
+                yyerror("Note velocity may not exceed 127.");
+            }
+        }
+    }
+
+    resolved = true;
 }
 
 string Note::toString() {
@@ -162,6 +171,8 @@ string Note::toString() {
     int octave = ((key - noteVal) / 12) - 1;
     string note = valueToNoteMap[noteVal];
     note.append(to_string(octave));
+    note.append(":");
+    note.append(to_string(vel));
     return note;
 }
 	

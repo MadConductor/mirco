@@ -10,7 +10,7 @@
 %option noyywrap
 
 DIGIT [0-9]
-NOTE [ABCDEFGHabcdefgh](#|b)?[0-9]
+NOTE [ABCDEFGHabcdefgh](#|b)?[0-9](\:[0-9]{1,3})?
 
 %%
 
