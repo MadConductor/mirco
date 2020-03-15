@@ -12,33 +12,49 @@ extern int yylex();
 extern int yyparse();
 extern FILE *yyin;
 
+map<int, SequenceNode *> eventMap;
+map<string, Definition *> defs;
+
 void yyerror(const char *s) {
 	fprintf(stderr, "Error: (line %d) %s\n", yylineno, s);
 	exit(1);
 }
 
 
-Engine engine;
 %}
 
 %union {
   int ival;
   float fval;
-  char *nval;
   char *sval;
-  char *idval;
+  Note *noteval;
+  Tone *toneval;
+  Identifier *idval;
+  SequenceNode *nodeval;
+  vector<SequenceNode *> *nodelistval;
+  vector<Identifier *> *idlistval;
 }
 
 %token DEFAULT AUTO SEQUENCE
 
 %token <ival>  INT
 %token <idval>  IDENTIFIER
+%token <noteval>  NOTE
+%token <toneval>  TONE_LITERAL
+%token <sval>  OPERATOR
+
+// unused
 %token <fval>  FLOAT
-%token <nval>  NOTE
 %token <sval>  STRING
+
+%type  <nodeval> sequence_node instantiation rhs_operand lhs_operand operation 
+%type  <nodelistval> node_list
+%type  <idlistval> id_list
+%type <ival> map_target
 
 %left '+' '-'
 %left '*' '/'
+
 
 %locations
 %define parse.error verbose
@@ -47,102 +63,116 @@ Engine engine;
 
 %% 
 
-definition_args: 
-  definition_args ',' IDENTIFIER {
-    engine.addDefinitionArgument($3);
+rhs_operand:
+  sequence_node {
+    $$ = $1;
   }
-  | IDENTIFIER {
-    engine.addDefinitionArgument($1);
+  | '(' operation ')' {
+    $$ = $2;
   }
-  |  {
+
+;
+
+lhs_operand:
+  sequence_node {
+    $$ = $1;
+  }
+  | operation {
+    $$ = $1;
+  }
+  | '(' operation ')' {
+    $$ = $2;
   }
 ;
 
-definition_body: 
-  definition_body ',' IDENTIFIER {
-    Identifier *id = new Identifier($3);
-    engine.addDefinitionListItem(id);
+operation:
+  lhs_operand OPERATOR rhs_operand {
+    vector<SequenceNode *> *os = new vector<SequenceNode *>();
+    os->push_back($1);
+    os->push_back($3);
+    $$ = (SequenceNode *)new Operation($2, os);
   }
-  | definition_body ',' NOTE {
-    Note *note = new Note($3);
-    engine.addDefinitionListItem(note);
-  }
-  | definition_body ',' call {
+;
+
+id_list: 
+  id_list ',' IDENTIFIER {
+    $1->push_back($3);
+    $$ = $1;
   }
   | IDENTIFIER {
-    Identifier *id = new Identifier($1);
-    engine.addDefinitionListItem(id);  
-  } 
-  | NOTE {
-    Note *note = new Note($1);
-    engine.addDefinitionListItem(note);
+    $$ = new vector<Identifier *>();
+    $$->push_back($1);
   }
-  | call {
-  }  
   | {
+    $$ = new vector<Identifier *>();
   }
 ;
 
 definition: 
-  SEQUENCE IDENTIFIER '(' {
-    engine.startDefinition("sequence", $2);
-  } definition_args ')' '{' definition_body '}' {
-    engine.endDefinition();
+  SEQUENCE IDENTIFIER '(' id_list ')' '{' node_list '}' {
+    Definition *d = new Definition($2->id, $4, $7);
+    defs[$2->id] = d;
   }
 ;
 
-call_args: 
-  call_args ',' IDENTIFIER {
-    Identifier *id = new Identifier($3);
-    engine.addCallArgument(id);
+node_list: 
+  node_list ',' sequence_node {
+    $1->push_back($3);
+    $$ = $1;
   }
-  | call_args ',' NOTE {
-    Note *note = new Note($3);
-    engine.addCallArgument(note);
-  }
-  | call_args ',' call {
-  }
-  | IDENTIFIER {
-    Identifier *id = new Identifier($1);
-    engine.addCallArgument(id);
-  }
-  | NOTE {
-    Note *note = new Note($1);
-    engine.addCallArgument(note);  
-  }
-  | call {
+  | sequence_node {
+    $$ = new vector<SequenceNode *>();
+    $$->push_back($1);
   }  
   | {
+    $$ = new vector<SequenceNode *>();
   }
 ;
 
-call:
-  IDENTIFIER '(' {
-    engine.startCall($1);
-  } call_args ')' {
-    engine.endCall();
+instantiation:
+  IDENTIFIER '(' node_list ')' {
+    Definition *d = defs[$1->id];
+    Instantiation *i = new Instantiation(d, $3);
+    $$ = (SequenceNode *)i;
+  }
+;
+
+sequence_node:
+  IDENTIFIER {
+    $$ = (SequenceNode *)$1;
+  } 
+  | NOTE {
+    $$ = (SequenceNode *)$1;
+  }
+  | TONE_LITERAL {
+    $$ = (SequenceNode *)$1;
+  }
+  | instantiation {
+    $$ = (SequenceNode *)$1;
+  }  
+  | operation {
+    $$ = (SequenceNode *)$1;
   }
 ;
 
 map_target:
   NOTE {
-    Note *note = new Note($1);
-    engine.startMapping(note->key);
+    $$ = $1->key;
   }
   | AUTO {
-    engine.startMapping(-1);
+    $$ = -1;
   }
   | DEFAULT {
-    engine.startMapping(-2);
-  }
-;
-mapping: 
-  map_target ':' {
-  } call {
-    engine.endMapping();
+    $$ = -2;
   }
 ;
 
+mapping: 
+  map_target ':' sequence_node {
+    eventMap[$1] = $3;
+    printf(($3->toString()).c_str());
+  }
+;
 
 exp:   
   exp definition {

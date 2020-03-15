@@ -4,100 +4,133 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "rtseq.hpp"
+
 using namespace std; 
 
 extern void yyerror(const char *s);
 
-class Definition; 
-class Call; 
+class Definition;
+class Note;
 
-class Sequence {
+class SequenceNode {
   public:
-    vector<string> args;
-    vector<Sequence *> children;
-    bool resolved;
+    vector<SequenceNode *> children;
 
-    Sequence(Definition d);
-    Sequence(Call c);
-    Sequence() = default;
-    virtual ~Sequence() = default;
+    virtual vector<SequenceNode *> getChildren();
+    virtual bool isReducible();
+    virtual string toString();
+    virtual RtEvent *renderRtEvents();
+    virtual void resolve(map<string, SequenceNode *> argMap);
 
-    void resolveSelf(map<string, Sequence *> argMap);
-    void resolveArguments(Call call);
-    string toString();
+    virtual SequenceNode *add(SequenceNode *o);
+    virtual SequenceNode *subtract(SequenceNode *o);
+    virtual SequenceNode *divide(SequenceNode *o);
+    virtual SequenceNode *multiply(SequenceNode *o);
 };
 
-class Note : public Sequence {
-	public:
-		uint8_t key;
-		uint8_t vel;
+class Note : public SequenceNode {
+  public:
+    int key;
+    int velocity;
     static std::map<string, int> noteToValueMap;
     static std::map<int, string> valueToNoteMap;
 
-    Note(uint8_t k, uint8_t v);
-    Note(string s);
     Note() = default;
+    Note(string s);
 
-    string toString();
+    string toString() override;
+    RtEvent *renderRtEvents() override;
+
+    SequenceNode *add(SequenceNode *o) override;
+    SequenceNode *subtract(SequenceNode *o) override;
+    SequenceNode *divide(SequenceNode *o) override;
+    SequenceNode *multiply(SequenceNode *o) override;
 };
 
-class Identifier : public Sequence {
-	public:
-    string identifier;
-    Identifier(string id);
+class Tone : public Note {
+  public:
+    int key;
+    int velocity;
+    int denominator = 16;
+  
+    Tone() = default;
+    Tone(string s);
+
+    string toString() override;
+};
+
+class Chord : public SequenceNode {
+  public:
+    vector<SequenceNode *> children;
+    int velocity;
+
+    Chord() = default;
+    Chord(string s);
+};
+
+class Identifier : public SequenceNode {
+  public:
+    string id;
+    SequenceNode *resolvedValue;
+
     Identifier() = default;
+    Identifier(string i);
 
-    Sequence *resolveSelf(map<string, Sequence *> argMap);
+    bool isReducible() override;
+    string toString() override;
+    RtEvent *renderRtEvents() override;
+    void resolve(map<string, SequenceNode *> argMap) override;
 };
 
-class ScopeItem {
+class Instantiation : public SequenceNode {
   public:
-    Sequence sequence;
+    Definition *definition;
+    vector<SequenceNode *> arguments;
+    vector<SequenceNode *> children;
 
-    ScopeItem(Sequence s);
-    ScopeItem() = default;
+    virtual vector<SequenceNode *> getChildren();
+    Instantiation() = default;
+    Instantiation(Definition *d, vector<SequenceNode *> *a);
 };
 
-class Definition { 
+class Operation : public SequenceNode {
   public:
-    string type;
-    string identifier;
-    vector<string> *arguments = new vector<string>{};
-    vector<Sequence *> *body = new vector<Sequence *>{};
+    enum Operator {
+      PLUS = '+',
+      MINUS = '-',
+      TIMES = '*',
+      DIVIDED = '/'  
+    };
+
+    Operator op;
+    vector<SequenceNode *> operands;
+    vector<SequenceNode *> children;
+    SequenceNode *reducedValue;
+
+    Operation() = default;
+    Operation(string o, vector<SequenceNode *> *os);
+
+    bool isReducible() override;
+    string toString() override;
+    RtEvent *renderRtEvents() override;
   
-  Definition(string t, string i);
-  void finalizeToScope(map<string, ScopeItem> &scope);
+    void reduce();
 };
 
-class Call { 
-  public: 
-    string identifier;
-    vector<Sequence *> *arguments = new vector<Sequence *>{};
-  
-  Call(string i);
+class RtResource : public SequenceNode {
+  public:
+    RtResource() = default;
+
+    bool isReducible() override;
 };
 
-class Engine { // Sequencer Definition Language Engine
-	public:
-    vector<Definition*> definitionStack;
-    Definition *currentDefinition; 
-    vector<Call*> callStack;
-    Call *currentCall;
-    map<int, Sequence> mapping;
-    int currentMapping;
-    map<string, ScopeItem> scope;
+class Definition {
+  public:
+    string id;
+    vector<Identifier *> arguments;
+    vector<SequenceNode *> body;
 
-    Engine();
-    void startDefinition(string type, string id);
-    void endDefinition();
-    void addDefinitionArgument(string id);
-    void addDefinitionListItem(Sequence *item);
-
-    void startCall(string id);
-    void endCall();
-    void addCallArgument(Sequence *arg);
-
-    void startMapping(int n);
-    void addMappingTarget(Sequence s);
-    void endMapping();
+    Definition() = default;
+    Definition(string i, vector<Identifier *> *a, vector<SequenceNode *> *b);
 };

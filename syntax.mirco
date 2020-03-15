@@ -1,12 +1,12 @@
 
-
-sequence seq1(A, B){
+sequence seq1(A, B) {
     A, A, A, A
 }
 
 sequence seq3() {
-    C3:123, C#2:20, C3, C1:2
+    C3 + 1s, C1:2, C3, C1:2
 }
+
 
 default: seq1(Cb2, Cb2)
 auto: seq1(seq3(), Cb2)
