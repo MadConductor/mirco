@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 
   yyparse();
 
-  RtEvent *start = eventMap[-2]->renderRtEvents();
+  RtEvent *start = eventMap[-2]->renderRtEvents(1,1);
   start->run();
 
   RtMidiIn *midiin = new RtMidiIn();
