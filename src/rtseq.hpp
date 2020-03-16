@@ -33,9 +33,12 @@
 //-----------------------------------------------------------------
 
 class RtEvent {
+  private:
+    RtEvent *next;
+
   public:
     virtual struct RtEventResult run() = 0;
-    virtual void append(RtEvent * next) = 0;
+    virtual void append(RtEvent * next);
 };
 
 struct RtEventResult {
@@ -55,10 +58,6 @@ class RtNoteEvent : public RtEvent {
     RtNoteEvent(unsigned char status, unsigned char byte2, unsigned char byte3);
     RtNoteEvent(unsigned char status, unsigned char byte2, unsigned char byte3, uint_fast32_t pulses);
     struct RtEventResult run() override;
-    void append(RtEvent *next) override;
-};
-
-class RtOperationEvent : RtEvent {
 };
 
 RtNoteEvent * MakeNoteMonophonic(unsigned char channel,
@@ -67,3 +66,8 @@ RtNoteEvent * MakeNoteMonophonic(unsigned char channel,
                                unsigned char off_veocity,
                                uint_fast32_t length,
                                uint_fast32_t afterpause);//shall not be 0
+
+class RtOperationEvent : public RtEvent {
+  public:
+    struct RtEventResult run() override;
+};

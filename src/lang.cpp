@@ -52,7 +52,6 @@ void SequenceNode::resolve(map<string, SequenceNode *> argMap) {
   }
 }
 
-
 SequenceNode *SequenceNode::add(SequenceNode *o) {
   throw logic_error("Not implemented");
 };
@@ -65,7 +64,6 @@ SequenceNode *SequenceNode::divide(SequenceNode *o) {
 SequenceNode *SequenceNode::multiply(SequenceNode *o) {
   throw logic_error("Not implemented");
 };
-
 
 // --- SequenceNode 
 
@@ -335,19 +333,19 @@ void Operation::reduce() {
   SequenceNode *rhs = operands[1];
   switch (op) {
     case PLUS:
-      reducedValue = (lhs->add(rhs));
+      reducedValue = lhs->add(rhs);
       break;
     case MINUS:
-      reducedValue = (lhs->subtract(rhs));
+      reducedValue = lhs->subtract(rhs);
       break;
     case TIMES:
-      reducedValue = (lhs->multiply(rhs));
+      reducedValue = lhs->multiply(rhs);
       break;
     case DIVIDED:
-      reducedValue = (lhs->divide(rhs));
+      reducedValue = lhs->divide(rhs);
       break;
     default:
-      yyerror("Unkown Operator");
+      throw logic_error("Unknown Operator");
       break;
   }
 }
