@@ -1,16 +1,16 @@
 #include "rtseq.hpp"
 
-struct RtEventResult RtNoteEvent::run() {
-  return (RtEventResult){.next = next, .pausepulses = pausepulses};
-  //this is apparently valid in C99 !
-}
-
-void RtNoteEvent::append(RtEvent *next) {
+void RtEvent::append(RtEvent *next) {
   if(this->next != nullptr) {
     this->next->append(next);
   } else {
     this->next = next;
   }
+}
+
+struct RtEventResult RtNoteEvent::run() {
+  return (RtEventResult){.next = next, .pausepulses = pausepulses};
+  //this is apparently valid in C99 !
 }
 
 RtNoteEvent::RtNoteEvent(unsigned char status, unsigned char byte2, unsigned char byte3) {
@@ -38,8 +38,12 @@ RtNoteEvent * MakeNoteMonophonic(unsigned char channel,
                                unsigned char off_velocity,
                                uint_fast32_t length,
                                uint_fast32_t afterpause){
-  RtNoteEvent * retval = new RtNoteEvent( MIDI_NOTE_ON_BYTE | channel, note, on_velocity, length);
+  RtNoteEvent * retval = new RtNoteEvent(MIDI_NOTE_ON_BYTE | channel, note, on_velocity, length);
   retval->append(new RtNoteEvent(MIDI_NOTE_OFF_BYTE | channel, note, off_velocity, 1) );
   retval->append(new RtNoteEvent(MIDI_NOTE_ON_BYTE | channel, note, 0, afterpause -1));
   return retval;
+}
+
+struct RtEventResult RtOperationEvent::run() {
+  // Run Operation
 }
