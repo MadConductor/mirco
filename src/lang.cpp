@@ -30,11 +30,11 @@ string SequenceNode::toString() {
   return res;
 }
 
-RtEvent *SequenceNode::renderRtEvents() {
+RtEvent *SequenceNode::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
   vector<SequenceNode *> children = getChildren();
   RtEvent *first, *cur, *last = nullptr;
   for(int i=0; i<children.size(); i++) {
-    cur = children[i]->renderRtEvents();
+    cur = children[i]->renderRtEvents(channel, multiplier);
     if (last != nullptr) {
       last->append(cur);
     } else {
@@ -100,6 +100,8 @@ map<int, string> Note::valueToNoteMap = {
 };
 
 Note::Note(string s) {
+  //TODO: add note length from string
+  //TODO: add duty cycle (staccato / legato) from string
   int noteVal = noteToValueMap[s.substr(0, 1)];
   int i = 1;
 
@@ -118,12 +120,19 @@ Note::Note(string s) {
 
   key = noteVal;
   velocity = 127;
+
+  length = 1; // dirty temporary hack
+  dutycycle = 128;
+
   if (s.length() > i) {
     i++;
     if (s[i] == ':') {
       velocity = stoi(s.substr(i + 1));
       if (velocity > 127) {
         yyerror("Note velocity may not exceed 127.");
+      }
+      if (velocity == 0) {
+        velocity =1;//velocity of 0 turns notes off again
       }
     }
   }
@@ -139,16 +148,26 @@ string Note::toString() {
   return note;
 } 
 
-RtEvent *Note::renderRtEvents() {
+RtEvent *Note::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
+  //should include note lengths!
+  //needs channel byte !
   RtNoteEvent *on = new RtNoteEvent(
-    MIDI_NOTE_ON_BYTE,
+    MIDI_NOTE_ON_BYTE | channel,
     key,
-    velocity
+    velocity,
+    (length * multiplier * dutycycle) / 256
   );
   RtNoteEvent *off = new RtNoteEvent(
-    MIDI_NOTE_OFF_BYTE,
+    MIDI_NOTE_OFF_BYTE | channel,
     key,
-    velocity
+    velocity,
+    0
+  );
+  RtNoteEvent *off2 = new RtNoteEvent(//backup "0 velocity pseudo note off" for older devices
+    MIDI_NOTE_ON_BYTE | channel,
+    key,
+    0,
+    (length * multiplier * (256-dutycycle)) / 256
   );
   on->append((RtEvent *)off);
   return (RtEvent *)on;
@@ -257,11 +276,11 @@ string Identifier::toString() {
   return resolvedValue->toString();
 }
 
-RtEvent *Identifier::renderRtEvents() {
+RtEvent *Identifier::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
   if (resolvedValue == nullptr) {
       yyerror("Cannot render unresolved identifier.");
   }
-  return resolvedValue->renderRtEvents();
+  return resolvedValue->renderRtEvents(channel, multiplier);
 }
 
 
@@ -316,10 +335,10 @@ bool Operation::isReducible() {
   return res;
 }
 
-RtEvent *Operation::renderRtEvents() {
+RtEvent *Operation::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
   if (isReducible()) {
     reduce();
-    return reducedValue->renderRtEvents();
+    return reducedValue->renderRtEvents(channel, multiplier);
   }
   return (RtEvent *)new RtOperationEvent(/* Realtime operation representation*/);
 }

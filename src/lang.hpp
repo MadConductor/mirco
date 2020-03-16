@@ -20,7 +20,7 @@ class SequenceNode {
     virtual vector<SequenceNode *> getChildren();
     virtual bool isReducible();
     virtual string toString();
-    virtual RtEvent *renderRtEvents();
+    virtual RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier);
     virtual void resolve(map<string, SequenceNode *> argMap);
 
     virtual SequenceNode *add(SequenceNode *o);
@@ -33,6 +33,8 @@ class Note : public SequenceNode {
   public:
     int key;
     int velocity;
+    uint_fast32_t length;
+    unsigned char dutycycle;//staccato / legato
     static std::map<string, int> noteToValueMap;
     static std::map<int, string> valueToNoteMap;
 
@@ -40,7 +42,7 @@ class Note : public SequenceNode {
     Note(string s);
 
     string toString() override;
-    RtEvent *renderRtEvents() override;
+    RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
 
     SequenceNode *add(SequenceNode *o) override;
     SequenceNode *subtract(SequenceNode *o) override;
@@ -79,7 +81,7 @@ class Identifier : public SequenceNode {
 
     bool isReducible() override;
     string toString() override;
-    RtEvent *renderRtEvents() override;
+    RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
     void resolve(map<string, SequenceNode *> argMap) override;
 };
 
@@ -113,7 +115,7 @@ class Operation : public SequenceNode {
 
     bool isReducible() override;
     string toString() override;
-    RtEvent *renderRtEvents() override;
+    RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
   
     void reduce();
 };
