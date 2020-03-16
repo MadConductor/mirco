@@ -33,14 +33,9 @@
 //-----------------------------------------------------------------
 
 class RtEvent {
-  private:
-    RtEvent *next;
-    uint_fast32_t pausepulses;
-    unsigned char message[3];
-
   public:
-    virtual struct RtEventResult run();
-    void append(RtEvent * next);
+    virtual struct RtEventResult run() = 0;
+    virtual void append(RtEvent * next) = 0;
 };
 
 struct RtEventResult {
@@ -58,8 +53,17 @@ class RtNoteEvent : public RtEvent {
 
   public:
     RtNoteEvent(unsigned char status, unsigned char byte2, unsigned char byte3);
+    RtNoteEvent(unsigned char status, unsigned char byte2, unsigned char byte3, uint_fast32_t pulses);
     struct RtEventResult run() override;
+    void append(RtEvent *next) override;
 };
 
 class RtOperationEvent : RtEvent {
 };
+
+RtNoteEvent * MakeNoteMonophonic(unsigned char channel,
+                               unsigned char note,
+                               unsigned char on_velocity,//shall not be 0 (velocity of 0 turns notes off)
+                               unsigned char off_veocity,
+                               uint_fast32_t length,
+                               uint_fast32_t afterpause);//shall not be 0
