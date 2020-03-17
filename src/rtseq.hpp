@@ -60,12 +60,6 @@ class RtNoteEvent : public RtEvent {
     struct RtEventResult run() override;
 };
 
-RtNoteEvent * MakeNoteMonophonic(unsigned char channel,
-                               unsigned char note,
-                               unsigned char on_velocity,//shall not be 0 (velocity of 0 turns notes off)
-                               unsigned char off_veocity,
-                               uint_fast32_t length,
-                               uint_fast32_t afterpause);//shall not be 0
 
 class RtOperationEvent : public RtEvent {
   public:
