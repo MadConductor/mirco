@@ -32,18 +32,6 @@ RtNoteEvent::RtNoteEvent(unsigned char status,
   pausepulses = pulses;
 }
 
-RtNoteEvent * MakeNoteMonophonic(unsigned char channel,
-                               unsigned char note,
-                               unsigned char on_velocity,
-                               unsigned char off_velocity,
-                               uint_fast32_t length,
-                               uint_fast32_t afterpause){
-  RtNoteEvent * retval = new RtNoteEvent(MIDI_NOTE_ON_BYTE | channel, note, on_velocity, length);
-  retval->append(new RtNoteEvent(MIDI_NOTE_OFF_BYTE | channel, note, off_velocity, 1) );
-  retval->append(new RtNoteEvent(MIDI_NOTE_ON_BYTE | channel, note, 0, afterpause -1));
-  return retval;
-}
-
 struct RtEventResult RtOperationEvent::run() {
   // Run Operation
 }
