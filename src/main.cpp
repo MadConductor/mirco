@@ -1,3 +1,10 @@
+//SECTION license --------------------------------
+
+//TODO license
+
+
+
+//SECTION includes -------------------------------
 
 #include "stdio.h"
 #include <map>
@@ -12,15 +19,21 @@
 #include <chrono>
 
 
+
+//SECTION global defines and constants -----------
+
 #define INTERNAL_PPQN 960
 #define DEFAULT_EXTERNAL_PPQN 24
+
+
+
+//SECTION global value structures ----------------
 
 struct global_settings {
   bool FOLLOW_INPUT_CLOCK;
   uint_fast16_t INPUT_PPQN;
   bool FOLLOW_INPUT_STARTSTOP;
 }GLOBAL_SETTINGS{false,DEFAULT_EXTERNAL_PPQN,false};
-
 
 class globalAtomics {
   atomic<bool> running;
@@ -39,6 +52,7 @@ class globalAtomics {
 
 
 
+//SECTION global handlers -------------------------
 
 void yyparse();
 extern FILE *yyin;
@@ -47,7 +61,7 @@ extern map<int, SequenceNode *> eventMap;
 
 
 
-
+//SECTION function definitions --------------------
 
 void onmessage( double deltatime, std::vector< unsigned char > *message, void *userData )
 {
@@ -58,6 +72,9 @@ void onmessage( double deltatime, std::vector< unsigned char > *message, void *u
     std::cout << "stamp = " << deltatime << std::endl;
 }
 
+
+
+//SECTION main -----------------------------------
 
 int main(int argc, char* argv[]) {
   char *filename = argv[1];
@@ -84,11 +101,11 @@ int main(int argc, char* argv[]) {
     goto cleanup;
   }
   midiin->openPort( 0 );
-  //TODO: port selection via cmdline parameter
   // Set our callback function.  This should be done immediately after
   // opening the port to avoid having incoming messages written to the
   // queue.
-  midiin->setCallback( &onmessage );
+  // TODO: port selection via cmdline parameter
+  midiin->setCallback(&onmessage);
   // Don't ignore sysex, timing, or active sensing messages.
   midiin->ignoreTypes( false, false, false );
   printf("\nReading MIDI input ... press <enter> to quit.\n");
