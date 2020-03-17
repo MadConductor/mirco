@@ -15,6 +15,13 @@
 #define INTERNAL_PPQN 960
 #define DEFAULT_EXTERNAL_PPQN 24
 
+struct global_settings {
+  bool FOLLOW_INPUT_CLOCK;
+  uint_fast16_t INPUT_PPQN;
+  bool FOLLOW_INPUT_STARTSTOP;
+}GLOBAL_SETTINGS{false,DEFAULT_EXTERNAL_PPQN,false};
+
+
 class globalAtomics {
   atomic<bool> running;
   atomic<uint_fast16_t> internal_counter; // internal 960 PPQN counter
