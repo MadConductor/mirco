@@ -7,10 +7,40 @@
 #include "lang.hpp"
 #include "rtseq.hpp"
 
+#include <thread>
+#include <atomic>
+#include <chrono>
+
+
+#define INTERNAL_PPQN 960
+#define DEFAULT_EXTERNAL_PPQN 24
+
+class globalAtomics {
+  atomic<bool> running;
+  atomic<uint_fast16_t> internal_counter; // internal 960 PPQN counter
+  atomic<unsigned char> external_counter;
+
+  public:
+  globalAtomics(bool runstate){
+    running.store(runstate);
+    internal_counter.store(0);
+    external_counter.store(0);
+
+  }
+
+} GLOBAL_ATOMICS(true);
+
+
+
+
 void yyparse();
 extern FILE *yyin;
 
 extern map<int, SequenceNode *> eventMap;
+
+
+
+
 
 void onmessage( double deltatime, std::vector< unsigned char > *message, void *userData )
 {
@@ -47,6 +77,7 @@ int main(int argc, char* argv[]) {
     goto cleanup;
   }
   midiin->openPort( 0 );
+  //TODO: port selection via cmdline parameter
   // Set our callback function.  This should be done immediately after
   // opening the port to avoid having incoming messages written to the
   // queue.
