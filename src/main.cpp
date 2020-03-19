@@ -94,13 +94,18 @@ int main(int argc, char* argv[]) {
   start->run();
 
   RtMidiIn *midiin = new RtMidiIn();
+  RtMidiOut *midiout = new RtMidiOut();
+
   // Check available ports.
-  unsigned int nPorts = midiin->getPortCount();
-  if ( nPorts == 0 ) {
+  unsigned int inPorts = midiin->getPortCount();
+  unsigned int onPorts = midiout->getPortCount();
+  if (inPorts == 0 || onPorts == 0) {
     printf("No ports available!\n");
     goto cleanup;
   }
+
   midiin->openPort( 0 );
+  midiout->openPort( 0 );
   // Set our callback function.  This should be done immediately after
   // opening the port to avoid having incoming messages written to the
   // queue.
