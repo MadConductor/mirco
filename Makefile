@@ -1,5 +1,5 @@
 
-FLAGS=-I lib/ -Llib/rtmidi -lrtmidi	
+FLAGS=-I lib/ -Llib/rtmidi -lrtmidi -fconcepts	
 DEBUG_FLAGS=-ggdb3 -O0
 FILES=src/lang.cpp src/rtseq.cpp build/parser.cpp build/lexer.cpp src/main.cpp
 

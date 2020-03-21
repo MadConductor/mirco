@@ -1,12 +1,11 @@
 
 sequence seq1(A, B) {
-    A, A, A, A
+    1o + A, A - 1s, A, A
 }
 
 sequence seq3() {
-    C3 + 1s, C1:2, C3, C1:2
+    C4, (C3, D#3), (C3, D#3, G3), C1:2
 }
-
 
 default: seq1(Cb2, Cb2)
 auto: seq1(seq3(), Cb2)

@@ -7,20 +7,38 @@ using namespace std;
     SequenceNode
 */
 
-vector<SequenceNode *> SequenceNode::getChildren() {
-  return children;
+SequenceNode *SequenceNode::operator+(Note *o) {
+  return doOperationRhs("+", this, o);
 };
 
-bool SequenceNode::isReducible() {
-  vector<SequenceNode *> children = getChildren();
-  bool res = true;
-  for(int i=0; i<children.size(); i++) {
-    res &= children[i]->isReducible();
-  }
-  return res;
-}
+SequenceNode *SequenceNode::operator+(Tone *o) {
+  return doOperationRhs("+", this, o);
+};
 
-string SequenceNode::toString() {
+SequenceNode *SequenceNode::operator+(Sequence *o) {
+  return doOperationRhs("+", this, o);
+};
+
+SequenceNode *SequenceNode::operator+(Chord *o) {
+  return doOperationRhs("+", this, o);
+};
+
+SequenceNode *SequenceNode::operator+(Identifier *o) {
+  return doOperationRhs("+", this, o);
+};
+
+SequenceNode *SequenceNode::operator+(RtResource *o) {
+  return doOperationRhs("+", this, o);
+};
+
+
+// --- SequenceNode 
+
+/*
+    SequenceParentNode
+*/
+
+string SequenceParentNode::toString() {
   vector<SequenceNode *> children = getChildren();
   string res = "";
   for(int i=0; i<children.size(); i++) {
@@ -30,7 +48,7 @@ string SequenceNode::toString() {
   return res;
 }
 
-RtEvent *SequenceNode::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
+RtEvent *SequenceParentNode::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
   vector<SequenceNode *> children = getChildren();
   RtEvent *first, *cur, *last = nullptr;
   for(int i=0; i<children.size(); i++) {
@@ -45,27 +63,24 @@ RtEvent *SequenceNode::renderRtEvents(unsigned char channel, uint_fast32_t multi
   return first;
 }
 
-void SequenceNode::resolve(map<string, SequenceNode *> argMap) {
+SequenceNode *SequenceParentNode::disambiguate(map<string, SequenceNode *> extraContext) {
   vector<SequenceNode *> children = getChildren();
   for(int i=0; i<children.size(); i++) {
-    children[i]->resolve(argMap);
+    SequenceNode *resolvedValue = children[i]->disambiguate(extraContext);
+    children[i] = resolvedValue;
   }
+  return this;
 }
 
-SequenceNode *SequenceNode::add(SequenceNode *o) {
-  throw logic_error("Not implemented");
-};
-SequenceNode *SequenceNode::subtract(SequenceNode *o) {
-  throw logic_error("Not implemented");
-};
-SequenceNode *SequenceNode::divide(SequenceNode *o) {
-  throw logic_error("Not implemented");
-};
-SequenceNode *SequenceNode::multiply(SequenceNode *o) {
-  throw logic_error("Not implemented");
-};
+bool SequenceParentNode::isAmbiguous() {
+  vector<SequenceNode *> children = getChildren();
+  for(int i=0; i<children.size(); i++) {
+    if(children[i]->isAmbiguous()) {return true;}
+  }
+  return false;
+}
 
-// --- SequenceNode 
+// --- SequenceParentNode 
 
 /*
     Note
@@ -119,7 +134,7 @@ Note::Note(string s) {
   key = noteVal;
   velocity = 127;
 
-  length = 1; // dirty temporary hack
+  denominator = 16; // dirty temporary hack
   dutycycle = 128;
 
   if (s.length() > i) {
@@ -130,11 +145,13 @@ Note::Note(string s) {
         yyerror("Note velocity may not exceed 127.");
       }
       if (velocity == 0) {
-        velocity =1;//velocity of 0 turns notes off again
+        velocity = 1; //velocity of 0 turns notes off again
       }
     }
   }
-}
+};
+
+Note::Note(int k, int v, int d) : key(k), velocity(v), denominator(d) {}
 
 string Note::toString() {
   int noteVal = key % 12;
@@ -144,16 +161,37 @@ string Note::toString() {
   note.append(":");
   note.append(to_string(velocity));
   return note;
-} 
+};
+
+int Note::getVelocity() const {
+  return velocity;
+};
+
+void Note::setVelocity(int v) {
+  velocity = v;
+};
+
+int Note::getKey() const {
+  return key;
+};
+
+void Note::setKey(int k) {
+  if (k < 0 ) k = 0;
+  key = k;
+};
+
 
 RtEvent *Note::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
   //should include note lengths!
   //needs channel byte !
+  int pulses = (MIDI_PULSES_PQN * 4) / denominator;
+  int offPulses = (pulses * (256 - dutycycle)) / 256;
+
   RtNoteEvent *on = new RtNoteEvent(
     MIDI_NOTE_ON_BYTE | channel,
     key,
     velocity,
-    (length * multiplier * dutycycle) / 256
+    pulses - offPulses
   );
   RtNoteEvent *off = new RtNoteEvent(
     MIDI_NOTE_OFF_BYTE | channel,
@@ -161,48 +199,53 @@ RtEvent *Note::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
     velocity,
     0
   );
-  RtNoteEvent *off2 = new RtNoteEvent(//backup "0 velocity pseudo note off" for older devices
+  RtNoteEvent *offlegacy = new RtNoteEvent(//backup "0 velocity pseudo note off" for older devices
     MIDI_NOTE_ON_BYTE | channel,
     key,
     0,
-    (length * multiplier * (256-dutycycle)) / 256
+    offPulses
   );
   on->append((RtEvent *)off);
+  on->append((RtEvent *)offlegacy);
   return (RtEvent *)on;
-}
+};
 
-SequenceNode *Note::add(SequenceNode *o) {
-  Note *note= dynamic_cast<Note *>(o);
-  if (note != nullptr) {
-      key += note->key;
-      return this;
-  }
-  yyerror("Wrong operand type.");
-  return this;
+// Operators
+
+SequenceNode *Note::operator+(Note *o) {
+  return new Note(
+    getKey() + o->getKey(),
+    std::max(getVelocity(), o->getVelocity()),
+    denominator
+  );
 };
-SequenceNode *Note::subtract(SequenceNode *o) {
-  if(Note *note= dynamic_cast<Note *>(o)) {
-      key -= note->key;
-      return this;
-  }
-  yyerror("Wrong operand type.");
-  return this;
+
+SequenceNode *Note::operator+(Tone *o) {
+  return new Note(
+    getKey() + o->getKey(),
+    getVelocity(),
+    denominator
+  );
 };
-SequenceNode *Note::divide(SequenceNode *o) {
-  if(Note *note= dynamic_cast<Note *>(o)) {
-      key /= note->key;
-      return this;
-  }
-  yyerror("Wrong operand type.");
-  return this;
+
+SequenceNode *Note::operator+(Sequence *o) {  
+  return (*o) + this;
 };
-SequenceNode *Note::multiply(SequenceNode *o) {
-  Note *note = dynamic_cast<Note *>(o);
-  if (note != nullptr) {
-    key *= note->key;
-    return this;
-  }
-  yyerror("Wrong operand type.");
+
+SequenceNode *Note::operator+(Chord *o) {  
+  return (*o) + this;
+};
+
+SequenceNode *Note::operator+(Identifier *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Note::operator+(RtResource *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Note::operator+(SequenceNode *o) {
+  return doOperationLhs("+", this, o);
 };
 
 // --- Note 
@@ -226,9 +269,12 @@ Tone::Tone(string s) {
   }
 }
 
+Tone::Tone(int k) : key(k) {}
+
 string Tone::toString() {
+  if (key == 0) return "0s";
   int noteVal = key % 12;
-  int octave = ((key - noteVal) / 12) - 1;
+  int octave = ((key - noteVal) / 12);
 
   string res = "";
   if (octave > 0) {
@@ -243,12 +289,110 @@ string Tone::toString() {
   return res;
 }
 
+int Tone::getKey() const {
+  return key;
+};
+
+void Tone::setKey(int k) {
+  if (k < 0) k = 0;
+  key = k;
+};
+
+// Operators
+
+SequenceNode *Tone::operator+(Note *o) {
+  return new Note(
+    getKey() + o->getKey(),
+    o->getVelocity(),
+    o->denominator
+  );
+};
+
+SequenceNode *Tone::operator+(Tone *o) {
+  return new Tone(
+    getKey() + o->getKey()
+  );
+};
+
+SequenceNode *Tone::operator+(Sequence *o) {  
+  return (*o) + this;
+};
+
+SequenceNode *Tone::operator+(Chord *o) {  
+  return (*o) + this;
+};
+
+SequenceNode *Tone::operator+(Identifier *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Tone::operator+(RtResource *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Tone::operator+(SequenceNode *o) {
+  return doOperationLhs("+", this, o);
+};
+
 
 // --- Tone 
 
 /*
-    Chord (tbd)
+    Chord
 */
+
+Chord::Chord(string s) {
+  // TODO: Parse chord notation like "C#msus"
+}
+
+Chord::Chord(vector<SequenceNode *> c, int v) : children(c), velocity(v) {}
+
+RtEvent *Chord::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
+  return nullptr;
+}
+
+string Chord::toString() {
+  vector<SequenceNode *> children = getChildren();
+  int size = children.size();
+  string res = "(";
+
+  for(int i=0; i<size; i++) {
+    res += children[i]->toString();
+    if (i != size - 1) res += ", ";
+  }
+  res += ")";
+  return res;
+};
+
+// Operators
+
+SequenceNode *Chord::operator+(Note *o) {
+  vector<SequenceNode *> c({});
+  for (int i=0; i<children.size(); i++) {
+    c.push_back(*(children[i]) + o);
+  }
+  return new Chord(c, velocity);
+};
+
+SequenceNode *Chord::operator+(Tone *o) {  
+  vector<SequenceNode *> c({});
+  for (int i=0; i<children.size(); i++) {
+    c.push_back(*(children[i]) + o);
+  }
+  return new Chord(c, velocity);
+};
+
+SequenceNode *Chord::operator+(Identifier *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Chord::operator+(RtResource *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Chord::operator+(SequenceNode *o) {
+  return doOperationLhs("+", this, o);
+};
 
 // --- Chord 
 
@@ -260,124 +404,143 @@ Identifier::Identifier(string i)
   : id(i) {
 }
 
-bool Identifier::isReducible() {  
-  if (resolvedValue == nullptr) {
-      return false;
-  }
-  return resolvedValue->isReducible();
-}
-
 string Identifier::toString() {
-  if (resolvedValue == nullptr) {
-      return id;
-  }
-  return resolvedValue->toString();
+  return id;
 }
 
 RtEvent *Identifier::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
-  if (resolvedValue == nullptr) {
-      yyerror("Cannot render unresolved identifier.");
+  throw logic_error("Cannot render unresolved identifier.");
+}
+
+SequenceNode *Identifier::disambiguate(map<string, SequenceNode *> extraContext) {
+  if (extraContext.count(id) > 0) {
+    return extraContext[id];
+  } else {
+    return this;
   }
-  return resolvedValue->renderRtEvents(channel, multiplier);
 }
 
+// Operators
 
-void Identifier::resolve(map<string, SequenceNode *> argMap) {
-  resolvedValue = argMap[id];
-  printf(resolvedValue->toString().c_str());
-  printf("\n");
-}
+SequenceNode *Identifier::operator+(Note *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Identifier::operator+(Tone *o) {  
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Identifier::operator+(Sequence *o) {  
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Identifier::operator+(Chord *o) {  
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Identifier::operator+(Identifier *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Identifier::operator+(RtResource *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *Identifier::operator+(SequenceNode *o) {
+  return makeOperation("+", this, o);
+};
+
 
 // --- Identifier 
 
 /*
-    Instantiation
+    Sequence
 */
 
-Instantiation::Instantiation(Definition *d, vector<SequenceNode *> *a)
-  : definition(d), arguments(*a) {
-  if (definition->arguments.size() != arguments.size()) {
+Sequence::Sequence(Definition *d, vector<SequenceNode *> *a) {
+  if (d->arguments.size() != a->size()) {
     yyerror(("Wrong number of arguments supplied to: " + d->id).c_str());
   }
   map<string, SequenceNode *> argMap;
-  for  (int i = 0; i < definition->arguments.size(); i++) {
-    argMap[definition->arguments[i]->id] = arguments[i];
+  for  (int i = 0; i < d->arguments.size(); i++) {
+    argMap[d->arguments[i]->id] = (*a)[i];
   }
-  for (int i = 0; i < definition->body.size(); i++) {
-    SequenceNode *node = definition->body[i];
-    node->resolve(argMap);
+  for (int i = 0; i < d->body.size(); i++) {
+    SequenceNode *node = d->body[i];
+    node = node->disambiguate(argMap);
     children.push_back(node);
   }
 }
 
-vector<SequenceNode *> Instantiation::getChildren() {
-  return children;
+Sequence::Sequence(vector<SequenceNode *> c) : children(c) {}
+
+// Operators
+
+SequenceNode *Sequence::operator+(Note *o) {
+  vector<SequenceNode *> c({});
+  for (int i=0; i<children.size(); i++) {
+    c.push_back(*(children[i]) + o);
+  }
+  return new Sequence(c);
 };
 
-// --- Instantiation 
-
-/*
-    Operation
-*/
-
-Operation::Operation(string o, vector<SequenceNode *> *os)
-  : operands(*os) {
-      op = (Operator)o[0];
-}
-
-bool Operation::isReducible() {  
-  bool res = true;
-  for(int i=0; i<operands.size(); i++) {
-    res &= operands[i]->isReducible();
+SequenceNode *Sequence::operator+(Tone *o) {  
+  vector<SequenceNode *> c({});
+  for (int i=0; i<children.size(); i++) {
+    c.push_back(*(children[i]) + o);
   }
-  return res;
-}
+  return new Sequence(c);
+};
 
-RtEvent *Operation::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
-  if (isReducible()) {
-    reduce();
-    return reducedValue->renderRtEvents(channel, multiplier);
-  }
-  return (RtEvent *)new RtOperationEvent(/* Realtime operation representation*/);
-}
+SequenceNode *Sequence::operator+(Identifier *o) {
+  return makeOperation("+", this, o);
+};
 
-string Operation::toString() {
-  return ("(" + operands[0]->toString() + " "
-    + string(1, (unsigned char)op) + " "
-      + operands[1]->toString()) + ")";
-}
+SequenceNode *Sequence::operator+(RtResource *o) {
+  return makeOperation("+", this, o);
+};
 
-void Operation::reduce() {  
-  SequenceNode *lhs = operands[0];
-  SequenceNode *rhs = operands[1];
-  switch (op) {
-    case PLUS:
-      reducedValue = lhs->add(rhs);
-      break;
-    case MINUS:
-      reducedValue = lhs->subtract(rhs);
-      break;
-    case TIMES:
-      reducedValue = lhs->multiply(rhs);
-      break;
-    case DIVIDED:
-      reducedValue = lhs->divide(rhs);
-      break;
-    default:
-      throw logic_error("Unknown Operator");
-      break;
-  }
-}
-    
-// --- Operation 
+SequenceNode *Sequence::operator+(SequenceNode *o) {
+  return doOperationLhs("+", this, o);
+};
+
+// --- Sequence 
+
 
 /*
     RtResource (tbd)
 */
 
-bool RtResource::isReducible() {  
-  return false;
-}
+
+// Operators
+
+SequenceNode *RtResource::operator+(Note *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *RtResource::operator+(Tone *o) {  
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *RtResource::operator+(Sequence *o) {  
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *RtResource::operator+(Chord *o) {  
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *RtResource::operator+(Identifier *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *RtResource::operator+(RtResource *o) {
+  return makeOperation("+", this, o);
+};
+
+SequenceNode *RtResource::operator+(SequenceNode *o) {
+  return makeOperation("+", this, o);
+};
 
 // --- RtResource 
 
@@ -387,7 +550,11 @@ bool RtResource::isReducible() {
 
 Definition::Definition(string i, vector<Identifier *> *a, vector<SequenceNode *> *b)
   : id(i), arguments(*a), body(*b) {
-  // Check if all used identifiers are declared arguments
+  for (int i=0; i<body.size(); i++) {
+    map<string, SequenceNode *> ec({});
+    body[i] = body[i]->disambiguate(ec);
+  }
+  // TODO: Check if all used identifiers are declared arguments
 }
 
 // --- Definition 

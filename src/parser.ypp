@@ -31,6 +31,10 @@ void yyerror(const char *s) {
   Tone *toneval;
   Identifier *idval;
   SequenceNode *nodeval;
+  SequenceParentNode *parentval;
+  AmbiguousSequenceNode *ambiguousval;
+  Sequence *sequenceval;
+  Chord *chordval;
   vector<SequenceNode *> *nodelistval;
   vector<Identifier *> *idlistval;
 }
@@ -47,10 +51,12 @@ void yyerror(const char *s) {
 %token <fval>  FLOAT
 %token <sval>  STRING
 
-%type  <nodeval> sequence_node instantiation rhs_operand lhs_operand operation 
+%type  <nodeval> sequence_node operation
+%type  <sequenceval> sequence
+%type  <chordval> chord
 %type  <nodelistval> node_list
-%type  <idlistval> id_list
-%type <ival> map_target
+%type  <idlistval> id_list 
+%type  <ival> map_target
 
 %left '+' '-'
 %left '*' '/'
@@ -63,34 +69,119 @@ void yyerror(const char *s) {
 
 %% 
 
-rhs_operand:
-  sequence_node {
-    $$ = $1;
+operation: 
+  IDENTIFIER OPERATOR IDENTIFIER {
+    $$ = doOperation($2, $1, $3);
+  }
+  | IDENTIFIER OPERATOR NOTE {
+    $$ = doOperation($2, $1, $3);
+  }
+  | IDENTIFIER OPERATOR TONE_LITERAL {
+    $$ = doOperation($2, $1, $3);
+  }
+  | IDENTIFIER OPERATOR sequence {
+    $$ = doOperation($2, $1, $3);
+  }  
+  | IDENTIFIER OPERATOR chord {
+    $$ = doOperation($2, $1, $3);
+  }
+  | IDENTIFIER OPERATOR '(' operation ')' {
+    $$ = doOperation($2, $1, $4);
+  }
+
+  | NOTE OPERATOR NOTE {
+    $$ = doOperation($2, $1, $3);
+  }
+  | NOTE OPERATOR IDENTIFIER {
+    $$ = doOperation($2, $1, $3);
+  }
+  | NOTE OPERATOR TONE_LITERAL {
+    $$ = doOperation($2, $1, $3);
+  }
+  | NOTE OPERATOR sequence {
+    $$ = doOperation($2, $1, $3);
+  }
+  | NOTE OPERATOR chord {
+    $$ = doOperation($2, $1, $3);
+  }
+  | NOTE OPERATOR '(' operation ')' {
+    $$ = doOperation($2, $1, $4);
+  }
+
+  | TONE_LITERAL OPERATOR TONE_LITERAL {
+    $$ = doOperation($2, $1, $3);
+  }
+  | TONE_LITERAL OPERATOR IDENTIFIER {
+    $$ = doOperation($2, $1, $3);
+  }
+  | TONE_LITERAL OPERATOR NOTE {
+    $$ = doOperation($2, $1, $3);
+  }
+  | TONE_LITERAL OPERATOR sequence {
+    $$ = doOperation($2, $1, $3);
+  }
+  | TONE_LITERAL OPERATOR chord {
+    $$ = doOperation($2, $1, $3);
+  }
+  | TONE_LITERAL OPERATOR '(' operation ')'  {
+    $$ = doOperation($2, $1, $4);
+  }
+
+  | sequence OPERATOR sequence {
+    $$ = doOperation($2, $1, $3);
+  }
+  | sequence OPERATOR IDENTIFIER {
+    $$ = doOperation($2, $1, $3);
+  }
+  | sequence OPERATOR NOTE {
+    $$ = doOperation($2, $1, $3);
+  }
+  | sequence OPERATOR TONE_LITERAL {
+    $$ = doOperation($2, $1, $3);
+  }
+  | sequence OPERATOR chord {
+    $$ = doOperation($2, $1, $3);
+  }
+  | sequence OPERATOR '(' operation ')'  {
+    $$ = doOperation($2, $1, $4);
+  }
+  
+  | chord OPERATOR chord {
+    $$ = doOperation($2, $1, $3);
+  }
+  | chord OPERATOR IDENTIFIER {
+    $$ = doOperation($2, $1, $3);
+  }
+  | chord OPERATOR NOTE {
+    $$ = doOperation($2, $1, $3);
+  }
+  | chord OPERATOR TONE_LITERAL {
+    $$ = doOperation($2, $1, $3);
+  }
+  | chord OPERATOR sequence {
+    $$ = doOperation($2, $1, $3);
+  }
+  | chord OPERATOR '(' operation ')'  {
+    $$ = doOperation($2, $1, $4);
+  }
+    
+  | operation OPERATOR chord {
+    $$ = doOperation($2, $1, $3);
+  }
+  | operation OPERATOR IDENTIFIER {
+    $$ = doOperation($2, $1, $3);
+  }
+  | operation OPERATOR NOTE {
+    $$ = doOperation($2, $1, $3);
+  }
+  | operation OPERATOR TONE_LITERAL {
+    $$ = doOperation($2, $1, $3);
+  }
+  | operation OPERATOR sequence {
+    $$ = doOperation($2, $1, $3);
   }
   | '(' operation ')' {
     $$ = $2;
-  }
-
-;
-
-lhs_operand:
-  sequence_node {
-    $$ = $1;
-  }
-  | operation {
-    $$ = $1;
-  }
-  | '(' operation ')' {
-    $$ = $2;
-  }
-;
-
-operation:
-  lhs_operand OPERATOR rhs_operand {
-    vector<SequenceNode *> *os = new vector<SequenceNode *>();
-    os->push_back($1);
-    os->push_back($3);
-    $$ = (SequenceNode *)new Operation($2, os);
   }
 ;
 
@@ -129,11 +220,18 @@ node_list:
   }
 ;
 
-instantiation:
+sequence:
   IDENTIFIER '(' node_list ')' {
     Definition *d = defs[$1->id];
-    Instantiation *i = new Instantiation(d, $3);
-    $$ = (SequenceNode *)i;
+    Sequence *i = new Sequence(d, $3);
+    $$ = i;
+  }
+;
+
+chord:
+  '(' node_list ')' {
+    Chord *c = new Chord(*$2);
+    $$ = c;
   }
 ;
 
@@ -147,10 +245,16 @@ sequence_node:
   | TONE_LITERAL {
     $$ = (SequenceNode *)$1;
   }
-  | instantiation {
+  | sequence {
     $$ = (SequenceNode *)$1;
   }  
   | operation {
+    $$ = (SequenceNode *)$1;
+  }
+  | '(' operation ')' {
+    $$ = (SequenceNode *)$2;
+  }
+  | chord {
     $$ = (SequenceNode *)$1;
   }
 ;
@@ -171,6 +275,7 @@ mapping:
   map_target ':' sequence_node {
     eventMap[$1] = $3;
     printf(($3->toString()).c_str());
+    printf("\n");
   }
 ;
 

@@ -30,6 +30,8 @@
 #define MIDI_STOP_BYTE       0xFC
 //no data bytes
 
+#define MIDI_PULSES_PQN  240
+
 //-----------------------------------------------------------------
 
 class RtEvent {

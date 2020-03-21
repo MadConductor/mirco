@@ -11,7 +11,7 @@
 DIGIT [0-9]
 INT [1-9]{DIGIT}*
 NOTE [ABCDEFGHabcdefgh](#|b)?[0-9](\:[0-9]{1,3})?
-OPERATOR [\+\-\*\\\=]
+OPERATOR [\+\-\*\/\=]
 SEMITONE {INT}[s]
 OCTAVE {INT}[o]
 TONE_LITERAL {OCTAVE}|{SEMITONE}|{OCTAVE}{SEMITONE}
