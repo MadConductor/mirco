@@ -50,20 +50,16 @@ string SequenceParentNode::toString() {
 
 RtEvent *SequenceParentNode::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
   vector<SequenceNode *> children = getChildren();
-  RtEvent *first, *cur, *last = nullptr;
+  RtNopEvent *start = new RtNopEvent(0);
+
   for(int i=0; i<children.size(); i++) {
-    cur = children[i]->renderRtEvents(channel, multiplier);
-    if (last != nullptr) {
-      last->append(cur);
-    } else {
-      first = cur;
-    }
-    last = cur;
+    RtEvent *cur = children[i]->renderRtEvents(channel, multiplier);
+    start->append(cur);
   }
-  return first;
+  return start;
 }
 
-SequenceNode *SequenceParentNode::disambiguate(map<string, SequenceNode *> extraContext) {
+SequenceNode *SequenceParentNode::disambiguate(Context extraContext) {
   vector<SequenceNode *> children = getChildren();
   for(int i=0; i<children.size(); i++) {
     SequenceNode *resolvedValue = children[i]->disambiguate(extraContext);
@@ -151,7 +147,10 @@ Note::Note(string s) {
   }
 };
 
-Note::Note(int k, int v, int d) : key(k), velocity(v), denominator(d) {}
+Note::Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d) 
+  : key(k), velocity(v), denominator(d) {
+    dutycycle = 128;
+}
 
 string Note::toString() {
   int noteVal = key % 12;
@@ -163,29 +162,27 @@ string Note::toString() {
   return note;
 };
 
-int Note::getVelocity() const {
+uint_fast32_t Note::getVelocity() const {
   return velocity;
 };
 
-void Note::setVelocity(int v) {
+void Note::setVelocity(uint_fast32_t v) {
   velocity = v;
 };
 
-int Note::getKey() const {
+uint_fast32_t Note::getKey() const {
   return key;
 };
 
-void Note::setKey(int k) {
+void Note::setKey(uint_fast32_t k) {
   if (k < 0 ) k = 0;
   key = k;
 };
 
 
 RtEvent *Note::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
-  //should include note lengths!
-  //needs channel byte !
-  int pulses = (MIDI_PULSES_PQN * 4) / denominator;
-  int offPulses = (pulses * (256 - dutycycle)) / 256;
+  uint_fast32_t pulses = (MIDI_PULSES_PQN * 4) / denominator;
+  uint_fast32_t offPulses = (pulses * (256 - dutycycle)) / 256;
 
   RtNoteEvent *on = new RtNoteEvent(
     MIDI_NOTE_ON_BYTE | channel,
@@ -269,7 +266,7 @@ Tone::Tone(string s) {
   }
 }
 
-Tone::Tone(int k) : key(k) {}
+Tone::Tone(uint_fast32_t k) : key(k) {}
 
 string Tone::toString() {
   if (key == 0) return "0s";
@@ -289,11 +286,11 @@ string Tone::toString() {
   return res;
 }
 
-int Tone::getKey() const {
+uint_fast32_t Tone::getKey() const {
   return key;
 };
 
-void Tone::setKey(int k) {
+void Tone::setKey(uint_fast32_t k) {
   if (k < 0) k = 0;
   key = k;
 };
@@ -345,10 +342,52 @@ Chord::Chord(string s) {
   // TODO: Parse chord notation like "C#msus"
 }
 
-Chord::Chord(vector<SequenceNode *> c, int v) : children(c), velocity(v) {}
+Chord::Chord(vector<SequenceNode *> c, uint_fast32_t v) : children(c), velocity(v) {
+  denominator = 16;
+  dutycycle = 128;
+}
 
 RtEvent *Chord::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
-  return nullptr;
+  uint_fast32_t pulses = (MIDI_PULSES_PQN * 4) / denominator;
+  uint_fast32_t offPulses = (pulses * (256 - dutycycle)) / 256;
+  uint_fast32_t size = children.size();
+  RtNopEvent *start = new RtNopEvent(0);
+
+  for (int i=0; i<size; i++) {
+    Note *child = static_cast<Note *>(children[i]);
+    uint_fast32_t evtPulses = 0;
+    if(i == size - 1) evtPulses = pulses - offPulses;
+
+    RtNoteEvent *on = new RtNoteEvent(
+      MIDI_NOTE_ON_BYTE | channel,
+      child->key,
+      velocity,
+      evtPulses
+    );
+    start->append(on);
+  }
+
+  for (int i=0; i<size; i++) {
+    Note *child = static_cast<Note *>(children[i]);
+    uint_fast32_t evtPulses = 0;
+    if(i == size - 1) evtPulses = offPulses;
+  
+    RtNoteEvent *off = new RtNoteEvent(
+      MIDI_NOTE_OFF_BYTE | channel,
+      child->key,
+      velocity,
+      0
+    );
+    RtNoteEvent *offlegacy = new RtNoteEvent(//backup "0 velocity pseudo note off" for older devices
+      MIDI_NOTE_ON_BYTE | channel,
+      child->key,
+      0,
+      evtPulses
+    );
+    start->append(off);
+    start->append(offlegacy);
+  }
+  return (RtEvent *)start;
 }
 
 string Chord::toString() {
@@ -412,7 +451,7 @@ RtEvent *Identifier::renderRtEvents(unsigned char channel, uint_fast32_t multipl
   throw logic_error("Cannot render unresolved identifier.");
 }
 
-SequenceNode *Identifier::disambiguate(map<string, SequenceNode *> extraContext) {
+SequenceNode *Identifier::disambiguate(Context extraContext) {
   if (extraContext.count(id) > 0) {
     return extraContext[id];
   } else {
@@ -461,7 +500,7 @@ Sequence::Sequence(Definition *d, vector<SequenceNode *> *a) {
   if (d->arguments.size() != a->size()) {
     yyerror(("Wrong number of arguments supplied to: " + d->id).c_str());
   }
-  map<string, SequenceNode *> argMap;
+  Context argMap;
   for  (int i = 0; i < d->arguments.size(); i++) {
     argMap[d->arguments[i]->id] = (*a)[i];
   }
@@ -551,7 +590,7 @@ SequenceNode *RtResource::operator+(SequenceNode *o) {
 Definition::Definition(string i, vector<Identifier *> *a, vector<SequenceNode *> *b)
   : id(i), arguments(*a), body(*b) {
   for (int i=0; i<body.size(); i++) {
-    map<string, SequenceNode *> ec({});
+    Context ec({});
     body[i] = body[i]->disambiguate(ec);
   }
   // TODO: Check if all used identifiers are declared arguments

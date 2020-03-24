@@ -2,9 +2,26 @@
 #include <cstdint>
 #include <rtmidi/RtMidi.h>
 #include <vector>
+#include <map>
+#include <unordered_map>
+#include <string>
 
+using namespace std;
+// language fwd declarations
+
+class SequenceNode;
+class SequenceParentNode;
+class Definition;
+class Sequence;
+class Chord;
+class Note;
+class Tone;
+class Identifier;
+class RtResource;
 
 //-----------------------------------------------------------------
+
+using Context = unordered_map<string, SequenceNode *>;
 
 //MIDI Status bytes
 //remember: status bytes are 128+
@@ -30,7 +47,7 @@
 #define MIDI_STOP_BYTE       0xFC
 //no data bytes
 
-#define MIDI_PULSES_PQN  240
+#define MIDI_PULSES_PQN  940
 
 //-----------------------------------------------------------------
 
@@ -39,13 +56,35 @@ class RtEvent {
     RtEvent *next;
 
   public:
-    virtual struct RtEventResult run() = 0;
+    virtual uint_fast32_t getPausePulses() = 0;
+    virtual void setNext(RtEvent * n) = 0;
+    virtual RtEvent *getNext() = 0;
+    virtual struct RtEventResult run(RtMidiOut *m, Context r) = 0;
     virtual void append(RtEvent * next);
 };
 
 struct RtEventResult {
     RtEvent *next;
     uint_fast32_t pausepulses;
+};
+
+/* 
+  Helper class that does nothing but host the next event
+  Used for building event chains
+*/
+
+class RtNopEvent : public RtEvent {
+  private:
+    RtEvent *next;
+    uint_fast32_t pausepulses;
+
+  public:
+    RtNopEvent(uint_fast32_t pulses);
+    uint_fast32_t getPausePulses() override { return pausepulses; };
+    void setNext(RtEvent *n) override { next = n; };
+    RtEvent *getNext() override { return next; };
+    struct RtEventResult run(RtMidiOut *m, Context r) override;
+
 };
 
 class RtNoteEvent : public RtEvent {
@@ -59,11 +98,8 @@ class RtNoteEvent : public RtEvent {
   public:
     RtNoteEvent(unsigned char status, unsigned char byte2, unsigned char byte3);
     RtNoteEvent(unsigned char status, unsigned char byte2, unsigned char byte3, uint_fast32_t pulses);
-    struct RtEventResult run() override;
-};
-
-
-class RtOperationEvent : public RtEvent {
-  public:
-    struct RtEventResult run() override;
+    uint_fast32_t getPausePulses() override { return pausepulses; };
+    void setNext(RtEvent *n) override { next = n; };
+    RtEvent *getNext() override { return next; };
+    struct RtEventResult run(RtMidiOut *m, Context r) override;
 };

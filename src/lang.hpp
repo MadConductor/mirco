@@ -11,16 +11,6 @@ using namespace std;
 
 extern void yyerror(const char *s);
 
-class SequenceNode;
-class SequenceParentNode;
-class Definition;
-class Sequence;
-class Chord;
-class Note;
-class Tone;
-class Identifier;
-class RtResource;
-
 class SequenceNode {
   public:
     enum Type {
@@ -38,7 +28,7 @@ class SequenceNode {
     virtual RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) = 0;
     
     virtual bool isAmbiguous() {return false;};
-    virtual SequenceNode *disambiguate(map<string, SequenceNode *> e) {return this;};
+    virtual SequenceNode *disambiguate(Context e) {return this;};
 
     SequenceNode *operator+(Note *o);
     SequenceNode *operator+(Tone *o);
@@ -59,29 +49,29 @@ class SequenceParentNode: public SequenceNode {
     virtual RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
     
     virtual bool isAmbiguous() override; 
-    virtual SequenceNode *disambiguate(map<string, SequenceNode *> e) override;    
+    virtual SequenceNode *disambiguate(Context e) override;    
 };
 
 class Note : public SequenceNode {
   public:
-    int key;
-    int velocity;
-    int denominator;
+    uint_fast32_t key;
+    uint_fast32_t velocity;
+    uint_fast32_t denominator;
     unsigned char dutycycle;//staccato / legato
     static map<string, int> noteToValueMap;
     static map<int, string> valueToNoteMap;
 
     Note() = default;
     Note(string s);
-    Note(int k, int v, int d);
+    Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d);
 
     virtual string toString() override;
     virtual SequenceNode::Type getType() override { return SequenceNode::NOTE; };
 
-    virtual int getVelocity() const; 
-    virtual int getKey() const; 
-    virtual void setKey(int k); 
-    virtual void setVelocity(int v); 
+    virtual uint_fast32_t getVelocity() const; 
+    virtual uint_fast32_t getKey() const; 
+    virtual void setKey(uint_fast32_t k); 
+    virtual void setVelocity(uint_fast32_t v); 
     RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
 
     SequenceNode *operator+(Note *o);
@@ -95,17 +85,17 @@ class Note : public SequenceNode {
 
 class Tone : public Note { // kind of a bad name ToneLiteral?
   public:
-    int key;
+    uint_fast32_t key;
   
     Tone() = default;
     Tone(string s);
-    Tone(int k);
+    Tone(uint_fast32_t k);
 
     string toString() override;
     virtual SequenceNode::Type getType() override { return SequenceNode::TONE; };
 
-    int getKey() const override; 
-    void setKey(int k) override;
+    uint_fast32_t getKey() const override; 
+    void setKey(uint_fast32_t k) override;
 
     SequenceNode *operator+(Note *o);
     SequenceNode *operator+(Tone *o);
@@ -119,13 +109,13 @@ class Tone : public Note { // kind of a bad name ToneLiteral?
 class Chord : public SequenceParentNode {
   public:
     vector<SequenceNode *> children;
-    int velocity = 0;
-    int denominator;
+    uint_fast32_t velocity = 0;
+    uint_fast32_t denominator;
     unsigned char dutycycle;
 
     Chord() = default;
     Chord(string s);
-    Chord(vector<SequenceNode *> c, int v = 127);
+    Chord(vector<SequenceNode *> c, uint_fast32_t v = 127);
 
     string toString() override;
     vector<SequenceNode *> getChildren() override { return children; };
@@ -157,7 +147,7 @@ class Identifier : public AmbiguousSequenceNode {
     virtual SequenceNode::Type getType() override { return SequenceNode::IDENTIFIER; };
 
     RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
-    SequenceNode *disambiguate(map<string, SequenceNode *> e) override;
+    SequenceNode *disambiguate(Context e) override;
 
     SequenceNode *operator+(Note *o);
     SequenceNode *operator+(Tone *o);
@@ -187,11 +177,15 @@ class Sequence : public SequenceParentNode {
 };
 
 template<typename LhsT, typename RhsT>
-class Operation : public AmbiguousSequenceNode {
+class Operation : public AmbiguousSequenceNode, public RtEvent {
   public:
     string op;
     LhsT *lhs;
     RhsT *rhs;
+    RtEvent *next;
+
+    unsigned char channel;
+    uint_fast32_t multiplier;
     
     Operation() = default;
     Operation(string o, LhsT *l, RhsT *r);
@@ -200,7 +194,12 @@ class Operation : public AmbiguousSequenceNode {
     virtual SequenceNode::Type getType() override { return SequenceNode::OPERATION; };
 
     RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
-    SequenceNode *disambiguate(map<string, SequenceNode *> e) override;
+    SequenceNode *disambiguate(Context e) override;
+
+    uint_fast32_t getPausePulses() override { return 0; };
+    void setNext(RtEvent * n) override { next = n; };
+    RtEvent *getNext() override { return next; };
+    struct RtEventResult run(RtMidiOut *m, Context r) override;
 
     SequenceNode *operator+(Note *o);
     SequenceNode *operator+(Tone *o);
@@ -216,7 +215,7 @@ class RtResource : public Identifier {
     RtResource() = default;
 
     virtual SequenceNode::Type getType() override { return SequenceNode::RTRESOURCE; };
-    SequenceNode *disambiguate(map<string, SequenceNode *> e) override;
+    SequenceNode *disambiguate(Context e) override;
 
     SequenceNode *operator+(Note *o);
     SequenceNode *operator+(Tone *o);
@@ -326,12 +325,20 @@ SequenceNode *doOperation(string opstr, LhsT *lhs, RhsT *rhs) {
     case PLUS:
       return (*lhs) + rhs;
       break;
+    case MINUS:
+      return (*lhs) + rhs;
+      break;
+    case DIVIDED:
+      return (*lhs) + rhs;
+      break;
+    case TIMES:
+      return (*lhs) + rhs;
+      break;
     default:
       throw logic_error("Unknown Operator");
       break;
   }
 };
-
 
 template<typename LhsT, typename RhsT>
 Operation<LhsT, RhsT>::Operation(string o, LhsT *l, RhsT *r) {
@@ -341,9 +348,18 @@ Operation<LhsT, RhsT>::Operation(string o, LhsT *l, RhsT *r) {
 };
 
 template<typename LhsT, typename RhsT>
-RtEvent *Operation<LhsT, RhsT>::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
+RtEvent *Operation<LhsT, RhsT>::renderRtEvents(unsigned char c, uint_fast32_t m) {
+  channel = c;
+  multiplier = m;
+  return this;
+};
 
-  return (RtEvent *)new RtOperationEvent(/* Realtime operation representation */);
+template<typename LhsT, typename RhsT>
+struct RtEventResult Operation<LhsT, RhsT>::run(RtMidiOut *m, Context rtContext) {
+  SequenceNode *value = this->disambiguate(rtContext);
+  RtEvent *event = value->renderRtEvents(channel, multiplier);
+  event->append(next);
+  return event->run(m, rtContext);
 };
 
 template<typename LhsT, typename RhsT>
@@ -354,7 +370,7 @@ string Operation<LhsT, RhsT>::toString() {
 };
 
 template<typename LhsT, typename RhsT>
-SequenceNode *Operation<LhsT, RhsT>::disambiguate(map<string, SequenceNode *> extraContext) {
+SequenceNode *Operation<LhsT, RhsT>::disambiguate(Context extraContext) {
   SequenceNode *l = lhs->disambiguate(extraContext);
   SequenceNode *r = rhs->disambiguate(extraContext);
   bool ambiguous = l->isAmbiguous() | r->isAmbiguous();
@@ -401,4 +417,4 @@ SequenceNode *Operation<LhsT, RhsT>::operator+(SequenceNode *o) {
   return makeOperation("+", this, o);
 };
 
-// --- Operation 
+// --- Operation

@@ -1,16 +1,26 @@
 #include "rtseq.hpp"
 
 void RtEvent::append(RtEvent *next) {
-  if(this->next != nullptr) {
-    this->next->append(next);
+  if(this->getNext() != nullptr) {
+    this->getNext()->append(next);
   } else {
-    this->next = next;
+    this->setNext(next);
   }
 }
 
-struct RtEventResult RtNoteEvent::run() {
-  return (RtEventResult){.next = next, .pausepulses = pausepulses};
-  //this is apparently valid in C99 !
+struct RtEventResult RtNopEvent::run(RtMidiOut *m, Context rtContext) {
+  return (RtEventResult){.next = getNext(), .pausepulses = getPausePulses()};
+}
+
+RtNopEvent::RtNopEvent(uint_fast32_t pulses) {
+  pausepulses = pulses;
+  next = nullptr;
+}
+
+
+struct RtEventResult RtNoteEvent::run(RtMidiOut *m, Context rtContext) {
+  printf("0x%x, %d, %d\n", message[0], message[1], message[2]);
+  return (RtEventResult){.next = getNext(), .pausepulses = getPausePulses()};
 }
 
 RtNoteEvent::RtNoteEvent(unsigned char status, unsigned char byte2, unsigned char byte3) {
@@ -30,8 +40,4 @@ RtNoteEvent::RtNoteEvent(unsigned char status,
   message[2] = byte3;
   next = nullptr;
   pausepulses = pulses;
-}
-
-struct RtEventResult RtOperationEvent::run() {
-  // Run Operation
 }

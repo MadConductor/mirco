@@ -1,12 +1,12 @@
 
-sequence seq1(A, B) {
-    1o + A, A - 1s, A, A
+sequence seq1(A) {
+    1o + A, A, A, A
 }
 
 sequence seq3() {
-    C4, (C3, D#3), (C3, D#3, G3), C1:2
+    C4, (C3, D#3), (1o, D#3, G3), C1:2
 }
 
-default: seq1(Cb2, Cb2)
-auto: seq1(seq3(), Cb2)
-C4: seq3()
+default: seq1(C4)
+auto: seq1(seq3())
+C4: seq1(C4)
