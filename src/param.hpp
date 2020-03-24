@@ -18,7 +18,7 @@ struct global_settings {
 };
 
 
-void init_settings(struct global_settings *settings);
+void init_settings(struct global_settings &settings);
 
 void unpack_cmdline(struct global_settings *settings, int argc, char * argv[]);
 
