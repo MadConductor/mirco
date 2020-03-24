@@ -37,9 +37,9 @@ using clk = chrono::high_resolution_clock;
 //SECTION global value structures ----------------
 
 struct global_settings  GLOBAL_SETTINGS {
-       {false,                     false},
-       {DEFAULT_EXTERNAL_PPQN,     false},
-       {false,                     false}
+ .FOLLOW_INPUT_CLOCK =     {false,                     false},
+ .INPUT_PPQN =             {DEFAULT_EXTERNAL_PPQN,     false},
+ .FOLLOW_INPUT_STARTSTOP = {false,                     false}
 };
 
 class globalAtomics {
