@@ -23,6 +23,9 @@
 #include "lang.hpp"
 #include "rtseq.hpp"
 
+#include "param.hpp"
+
+
 using clk = chrono::high_resolution_clock;
 
 //SECTION global defines and constants -----------
@@ -33,11 +36,11 @@ using clk = chrono::high_resolution_clock;
 
 //SECTION global value structures ----------------
 
-struct global_settings {
-  bool FOLLOW_INPUT_CLOCK;
-  uint_fast16_t INPUT_PPQN;
-  bool FOLLOW_INPUT_STARTSTOP;
-} GLOBAL_SETTINGS { false, DEFAULT_EXTERNAL_PPQN, false };
+struct global_settings  GLOBAL_SETTINGS {
+       {false,                     false},
+       {DEFAULT_EXTERNAL_PPQN,     false},
+       {false,                     false}
+};
 
 class globalAtomics {
   atomic<bool> running;
@@ -82,7 +85,7 @@ float estimateBpm() {
     avgDelta += delta / size;
   }
 
-  float estimatedBpm = (((float)NS_MIN) / avgDelta.count()) / GLOBAL_SETTINGS.INPUT_PPQN;
+  float estimatedBpm = (((float)NS_MIN) / avgDelta.count()) / GLOBAL_SETTINGS.INPUT_PPQN.val;
   return estimatedBpm;
 };
 
@@ -91,10 +94,10 @@ void handleClockPulse(vector<unsigned char> *message) {
   now = clk::now();
   auto delta = now - lastPulse;
   deltas.push_back(delta);
-  if (deltas.size() > (GLOBAL_SETTINGS.INPUT_PPQN * 4)) {
+  if (deltas.size() > (GLOBAL_SETTINGS.INPUT_PPQN.val * 4)) {
     deltas.pop_front();
   }
-  if (numPulses % (GLOBAL_SETTINGS.INPUT_PPQN * 4) == 0) { 
+  if (numPulses % (GLOBAL_SETTINGS.INPUT_PPQN.val * 4) == 0) { 
     printf("Estimated BPM: %f\n", estimateBpm()); 
   }
 
