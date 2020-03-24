@@ -14,6 +14,7 @@ struct global_settings {
   param<bool> FOLLOW_INPUT_CLOCK;
   param<uint_fast16_t> INPUT_PPQN;
   param<bool> FOLLOW_INPUT_STARTSTOP;
+  param<uint_fast16_t> DEFAULT_BPM;
 };
 
 

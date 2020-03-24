@@ -39,7 +39,8 @@ using clk = chrono::high_resolution_clock;
 struct global_settings  GLOBAL_SETTINGS {
  .FOLLOW_INPUT_CLOCK =     {false,                     false},
  .INPUT_PPQN =             {DEFAULT_EXTERNAL_PPQN,     false},
- .FOLLOW_INPUT_STARTSTOP = {false,                     false}
+ .FOLLOW_INPUT_STARTSTOP = {false,                     false},
+ .DEFAULT_BPM =            {120,                       false}
 };
 
 class globalAtomics {
@@ -77,6 +78,7 @@ uint_fast32_t numPulses = 0;
 //SECTION function definitions --------------------
 
 float estimateBpm() {
+  if(!GLOBAL_SETTINGS.FOLLOW_INPUT_CLOCK.val) return GLOBAL_SETTINGS.DEFAULT_BPM.val;
   int size = deltas.size();
   chrono::nanoseconds avgDelta(0);
 
@@ -93,6 +95,8 @@ void handleClockPulse(vector<unsigned char> *message) {
   // printf("Received Midi Clock Pulse Message \n");
   now = clk::now();
   auto delta = now - lastPulse;
+
+  //TODO thread-safety
   deltas.push_back(delta);
   if (deltas.size() > (GLOBAL_SETTINGS.INPUT_PPQN.val * 4)) {
     deltas.pop_front();
@@ -133,7 +137,7 @@ void onmessage(double deltatime, vector<unsigned char> *message, void *userData)
   unsigned char status = message->at(0);
   switch(status) {
     case MIDI_TIME_CLOCK_BYTE:
-      handleClockPulse(message);
+      if(GLOBAL_SETTINGS.FOLLOW_INPUT_CLOCK.val)handleClockPulse(message);
       break;
     case MIDI_START_BYTE: 
       printf("Received Midi Clock Start Message \n");
