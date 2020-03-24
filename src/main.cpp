@@ -22,7 +22,6 @@
 
 #include "lang.hpp"
 #include "rtseq.hpp"
-
 #include "param.hpp"
 
 
@@ -31,17 +30,11 @@ using clk = chrono::high_resolution_clock;
 //SECTION global defines and constants -----------
 
 #define INTERNAL_PPQN MIDI_PULSES_PQN
-#define DEFAULT_EXTERNAL_PPQN 24
 #define NS_MIN (1000ULL * 1000 * 1000 * 60)
 
 //SECTION global value structures ----------------
 
-struct global_settings  GLOBAL_SETTINGS {
- .FOLLOW_INPUT_CLOCK =     {false,                     false},
- .INPUT_PPQN =             {DEFAULT_EXTERNAL_PPQN,     false},
- .FOLLOW_INPUT_STARTSTOP = {false,                     false},
- .DEFAULT_BPM =            {120,                       false}
-};
+struct global_settings GLOBAL_SETTINGS;
 
 class globalAtomics {
   atomic<bool> running;
@@ -260,6 +253,8 @@ void outputLoop() {
 //SECTION main -----------------------------------
 
 int main(int argc, char* argv[]) {
+  init_settings(GLOBAL_SETTINGS);
+
   char *filename = argv[1];
 
   FILE *file = fopen(filename, "r");
