@@ -31,18 +31,17 @@ void unpack_cmdline(struct global_settings *settings, char *&filename, int argc,
     while (1)
     {
         int index = 0;
-        struct option * opt = 0;
         int result = getopt_long(argc, argv,
             "c::b:i:o:",
             LONG_OPTIONS, &index);
         if (result == -1) break; /* end of list */
         switch (result)
         {
-            case 'b': /* same as index==1 */
+            case 'b':
               settings->DEFAULT_BPM = {(uint_fast16_t)atol(optarg), true};
               //TODO error checking
               break;
-            case 'c': /* same as index==2 */
+            case 'c':
               settings->FOLLOW_INPUT_CLOCK = {true, true};
               settings->INPUT_PPQN = {(uint_fast16_t)atol(optarg), true};
               //TODO error checking
