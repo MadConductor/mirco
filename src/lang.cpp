@@ -109,8 +109,6 @@ map<int, string> Note::valueToNoteMap = {
 };
 
 Note::Note(string s) {
-  //TODO: add note length from string
-  //TODO: add duty cycle (staccato / legato) from string
   int noteVal = noteToValueMap[s.substr(0, 1)];
   int i = 1;
 
@@ -142,7 +140,7 @@ Note::Note(string s) {
       yyerror("Note velocity may not exceed 127.");
     }
     if (velocity == 0) {
-      velocity = 1; //velocity of 0 turns notes off again
+      velocity = 1; // velocity of 0 turns notes off again
     }
   }
 

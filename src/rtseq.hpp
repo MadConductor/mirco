@@ -70,8 +70,8 @@ struct RtEventResult {
 };
 
 /* 
-  Helper class that does nothing but host the next event
-  Used for building event chains
+  Helper class that does nothing but host the next event.
+  Used for building event chains.
 */
 class RtNopEvent : public RtEvent {
   private:
