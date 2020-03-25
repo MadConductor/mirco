@@ -9,15 +9,22 @@
 #define DEFAULT_EXTERNAL_PPQN 24
 
 static const struct option LONG_OPTIONS[] = {
-  {"follow-clk",  optional_argument, 0, 'c'},
-  {"bpm",         required_argument, 0, 'b'},
-0};
+    {"input", required_argument, 0, 'i'},
+    {"output", required_argument, 0, 'o'},
+    {"follow-clk", optional_argument, 0, 'c'},
+    {"bpm", required_argument, 0, 'b'},
+    0};
 
 void init_settings(struct global_settings &settings){
-  settings.FOLLOW_INPUT_CLOCK =     {false, false};
+  settings.INPUT_PORT =             {0,                     false};
+  settings.OUTPUT_PORT =            {0,                     false};
+
+  settings.FOLLOW_INPUT_CLOCK =     {false,                 false};
   settings.INPUT_PPQN =             {DEFAULT_EXTERNAL_PPQN, false};
-  settings.FOLLOW_INPUT_STARTSTOP = {false, false};
-  settings.DEFAULT_BPM =            {120, false};
+
+  settings.DEFAULT_BPM =            {120,                   false};
+
+  settings.FOLLOW_INPUT_STARTSTOP = {false,                 false};
 }
 
 void unpack_cmdline(struct global_settings *settings, int argc, char *argv[]){
@@ -39,6 +46,12 @@ void unpack_cmdline(struct global_settings *settings, int argc, char *argv[]){
               settings->FOLLOW_INPUT_CLOCK = {true, true};
               settings->INPUT_PPQN = {(uint_fast16_t)atol(optarg), true};
               //TODO error checking
+              break;
+            case 'i':
+              settings->INPUT_PORT = {(uint_fast16_t)atol(optarg), true};
+              break;
+            case 'o':
+              settings->OUTPUT_PORT = {(uint_fast16_t)atol(optarg), true};
               break;
             case 0:
             case ':':
