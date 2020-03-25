@@ -224,10 +224,17 @@ RtMidiIn *openMidiIn() {
   midiin->setCallback(&onmessage);
   midiin->ignoreTypes(false, false, false);
 
-  if (inPorts == 0) {
-    printf("No input ports available! Connect one manually!\n");
+  if(GLOBAL_SETTINGS.INPUT_PORT.changed){
+      while(inPorts <= GLOBAL_SETTINGS.INPUT_PORT.val){
+      inPorts = midiin->getPortCount();
+      //if port is specified but not there, wait until port is available
+    }
   } else {
-    midiin->openPort(0); // TODO: Command line parameter
+    if (inPorts == 0) {
+      printf("No input ports available! Connect one manually!\n");
+    } else {
+      midiin->openPort(GLOBAL_SETTINGS.INPUT_PORT.val);
+    }
   }
   return midiin;
 }
@@ -241,10 +248,19 @@ RtMidiOut *openMidiOut() {
     "Mirco Sequencer"
   );  
   unsigned int outPorts = midiout->getPortCount();
-  if (outPorts == 0) {
-    printf("No output ports available! Connect one manually!\n");
+
+  if (GLOBAL_SETTINGS.INPUT_PORT.changed) {
+    while (outPorts <= GLOBAL_SETTINGS.OUTPUT_PORT.val) {
+      outPorts = midiout->getPortCount();
+      // if port is specified but not there, wait until port is available
+    }
   } else {
-    midiout->openPort(0); // TODO: Command line parameter
+    if (outPorts == 0) {
+      printf("No input ports available! Connect one manually!\n");
+    } else {
+      midiout->openPort(
+          GLOBAL_SETTINGS.OUTPUT_PORT.val);
+    }
   }
   return midiout;
 }
@@ -334,11 +350,12 @@ void outputLoop() {
 
 //SECTION main -----------------------------------
 int main(int argc, char* argv[]) {
+  char *filename;
+
   init_settings(GLOBAL_SETTINGS);
-  unpack_cmdline(&GLOBAL_SETTINGS, argc, argv);
+  unpack_cmdline(&GLOBAL_SETTINGS, filename, argc, argv);
 
   // open mirco file
-  char *filename = argv[1];
 
   FILE *file = fopen(filename, "r");
   if (!file) {
