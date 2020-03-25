@@ -24,6 +24,6 @@ struct global_settings {
 
 void init_settings(struct global_settings &settings);
 
-void unpack_cmdline(struct global_settings *settings, char* filename, int argc, char * argv[]);
+void unpack_cmdline(struct global_settings *settings, char *&filename, int argc, char * argv[]);
 
 void string_to_param(struct global_settings *settings, const std::string *str);

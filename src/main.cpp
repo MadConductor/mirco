@@ -225,10 +225,13 @@ RtMidiIn *openMidiIn() {
   midiin->ignoreTypes(false, false, false);
 
   if(GLOBAL_SETTINGS.INPUT_PORT.changed){
-      while(inPorts <= GLOBAL_SETTINGS.INPUT_PORT.val){
+    printf("Opening midi input port: %d\n", GLOBAL_SETTINGS.INPUT_PORT.val);
+    while(inPorts <= GLOBAL_SETTINGS.INPUT_PORT.val){
       inPorts = midiin->getPortCount();
       //if port is specified but not there, wait until port is available
     }
+    midiin->openPort(
+        GLOBAL_SETTINGS.INPUT_PORT.val);
   } else {
     if (inPorts == 0) {
       printf("No input ports available! Connect one manually!\n");
@@ -249,11 +252,15 @@ RtMidiOut *openMidiOut() {
   );  
   unsigned int outPorts = midiout->getPortCount();
 
-  if (GLOBAL_SETTINGS.INPUT_PORT.changed) {
+  if (GLOBAL_SETTINGS.OUTPUT_PORT.changed) {
+    printf("Opening midi output port: %d\n", GLOBAL_SETTINGS.OUTPUT_PORT.val);
+
     while (outPorts <= GLOBAL_SETTINGS.OUTPUT_PORT.val) {
       outPorts = midiout->getPortCount();
       // if port is specified but not there, wait until port is available
     }
+    midiout->openPort(
+        GLOBAL_SETTINGS.OUTPUT_PORT.val);
   } else {
     if (outPorts == 0) {
       printf("No input ports available! Connect one manually!\n");

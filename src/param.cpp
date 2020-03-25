@@ -27,13 +27,13 @@ void init_settings(struct global_settings &settings){
   settings.FOLLOW_INPUT_STARTSTOP = {false,                 false};
 }
 
-void unpack_cmdline(struct global_settings *settings, char *filename, int argc, char *argv[]){
+void unpack_cmdline(struct global_settings *settings, char *&filename, int argc, char *argv[]){
     while (1)
     {
-        int index = -1;
+        int index = 0;
         struct option * opt = 0;
         int result = getopt_long(argc, argv,
-            "c::b:",
+            "c::b:i:o:",
             LONG_OPTIONS, &index);
         if (result == -1) break; /* end of list */
         switch (result)
