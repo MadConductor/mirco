@@ -71,7 +71,11 @@ uint_fast32_t numPulses = 0;
 
 //SECTION function definitions --------------------
 
-float estimateBpm() {
+/*
+  Averages the last bar of clock message deltas
+  in order to get a steady bpm value.
+*/
+float estimateBpm() { 
   if(!GLOBAL_SETTINGS.FOLLOW_INPUT_CLOCK.val) return GLOBAL_SETTINGS.DEFAULT_BPM.val;
   int size = deltas.size();
   chrono::nanoseconds avgDelta(0);
@@ -85,6 +89,11 @@ float estimateBpm() {
   return estimatedBpm;
 };
 
+/*
+  Handles an incoming clock pulse by computing
+  the time since the last clock pulse and 
+  storing it.
+*/
 void handleClockPulse(vector<unsigned char> *message) {
   // printf("Received Midi Clock Pulse Message \n");
   now = clk::now();
@@ -103,6 +112,11 @@ void handleClockPulse(vector<unsigned char> *message) {
   numPulses++;
 }
 
+/*
+  Handles "Note On" message by looking up
+  the mapped sequence for the trigger note
+  and storing it in the playMap.
+*/
 void handleOnMsg(vector<unsigned char> *message) {
   unsigned char key = message->at(1);
   RtEvent *event;
@@ -120,6 +134,11 @@ void handleOnMsg(vector<unsigned char> *message) {
   openNotes[key] = new vector<RtNoteOnEvent *>({});
 }
 
+/*
+  Handles "Note Off" message by shutting
+  all currently active notes off or replacing
+  the playing sequence with an RtNopEvent.
+*/
 void handleOffMsg(vector<unsigned char> *message) {
   unsigned char key = message->at(1);
   vector<RtNoteOnEvent *> *on;
@@ -138,6 +157,9 @@ void handleOffMsg(vector<unsigned char> *message) {
   playMap[key] = start;
 }
 
+/*
+  Invokes midi message handlers.
+*/
 void onmessage(double deltatime, vector<unsigned char> *message, void *userData) {
   unsigned char status = message->at(0);
   switch(status) {
@@ -171,6 +193,9 @@ void onmessage(double deltatime, vector<unsigned char> *message, void *userData)
   }
 }
 
+/*
+  Opens RtMidiIn
+*/
 RtMidiIn *openMidiIn() {
   RtMidiIn *midiin = new RtMidiIn(
     RtMidi::Api::UNSPECIFIED, // TODO: Command line parameter
@@ -184,11 +209,14 @@ RtMidiIn *openMidiIn() {
   if (inPorts == 0) {
     printf("No input ports available! Connect one manually!\n");
   } else {
-    midiin->openPort(0);
+    midiin->openPort(0); // TODO: Command line parameter
   }
   return midiin;
 }
 
+/*
+  Opens RtMidiOut
+*/
 RtMidiOut *openMidiOut() {
   RtMidiOut *midiout = new RtMidiOut(
     RtMidi::Api::UNSPECIFIED, // TODO: Command line parameter
@@ -198,11 +226,16 @@ RtMidiOut *openMidiOut() {
   if (outPorts == 0) {
     printf("No output ports available! Connect one manually!\n");
   } else {
-    midiout->openPort(0);
+    midiout->openPort(0); // TODO: Command line parameter
   }
   return midiout;
 }
 
+/*
+  Runs a realtime event and stores the next event
+  in the playMap or runs the next event immediately.
+  Erases event from playMap if it has no successor. 
+*/
 RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, uint_fast32_t key, uint_fast32_t totalPulses) {
   printf("Executing RtEvent at %d pulses\n", totalPulses);
   RtEventResult res = event->run(midiout, *rtContext, key);
@@ -221,32 +254,44 @@ RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, u
     nextPulseMap.erase(key);
   }
   return res; 
-}      
+}
 
+/*
+  Midi output loop
+*/
 void outputLoop() {
   RtMidiOut *midiout = openMidiOut();
-  uint_fast32_t totalPulses = 0;
+  // stores how many internal clock pulses have passed
+  uint_fast32_t totalPulses = 0; 
+  // TODO: add realtime context (trigger note eg.)
   Context *rtContext = new Context({});
   float bpm = estimateBpm();
+  // local copy of the playmap (concurrency)
   unordered_map<int, RtEvent *> playMapCopy(playMap);
 
   while (true) {
     if (totalPulses % (INTERNAL_PPQN*4) == 0) {
       printf("Bar completed in output thread \n");
+      // reestimate bpm every bar (lo-pass bitcrusher :P)
       bpm = estimateBpm();
     }
-    if (true) { 
+    if (true) { // just a scope for the lock_guard
       lock_guard<mutex> guard(playMutex);
       playMapCopy = unordered_map<int, RtEvent *>(playMap);
     }
 
+    // calculate when the next internal clock 
+    // pulse will happen in nanoseconds
     uint_fast32_t pulseDelay = (NS_MIN / (bpm * INTERNAL_PPQN));
-    auto nextPulse = clk::now() + chrono::nanoseconds(pulseDelay);
+    auto nextPulseNs = clk::now() + chrono::nanoseconds(pulseDelay);
 
+    // iterate over playMap
     auto it = playMapCopy.begin();
     while (it != playMapCopy.end()) {
       int key = it->first;
       RtEvent *event = it->second;
+
+      // next clock pulse for current key
       int nextPulse;
       try {
         nextPulse = nextPulseMap.at(key);
@@ -254,21 +299,26 @@ void outputLoop() {
         nextPulse = totalPulses;
       }
 
+      // run event if it is scheduled
       if (nextPulse <= totalPulses) {
         runEvent(event, midiout, rtContext, key, totalPulses);
       }
       it++;
     }
     totalPulses++;
-    this_thread::sleep_until(nextPulse);
+    
+    // sleep thread until next internal pulse
+    // TODO: support high bpm (will only work
+    // on real time kernels as of now)
+    this_thread::sleep_until(nextPulseNs);
   }
 }
 
 //SECTION main -----------------------------------
-
 int main(int argc, char* argv[]) {
   init_settings(GLOBAL_SETTINGS);
 
+  // open mirco file
   char *filename = argv[1];
 
   FILE *file = fopen(filename, "r");
@@ -280,7 +330,10 @@ int main(int argc, char* argv[]) {
   }
   yyin = file;
 
+  // parse mirco file (generated by parser.ypp)
   yyparse();
+
+  // start input and output threads
   thread inputThread(openMidiIn);
   thread outputThread(outputLoop);
 

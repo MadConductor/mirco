@@ -52,18 +52,21 @@ class SequenceParentNode: public SequenceNode {
     virtual SequenceNode *disambiguate(Context e) override;    
 };
 
+/*
+  Single Note, very boring.
+*/
 class Note : public SequenceNode {
   public:
     uint_fast32_t key;
     uint_fast32_t velocity;
     uint_fast32_t denominator;
-    unsigned char dutycycle;//staccato / legato
+    unsigned char dutycycle; // staccato / legato
     static map<string, int> noteToValueMap;
     static map<int, string> valueToNoteMap;
 
     Note() = default;
     Note(string s);
-    Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d, uint_fast32_t du);
+    Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d = 1, uint_fast32_t du = 1);
 
     virtual string toString() override;
     virtual SequenceNode::Type getType() override { return SequenceNode::NOTE; };
@@ -83,6 +86,10 @@ class Note : public SequenceNode {
     SequenceNode *operator+(SequenceNode *o);
 };
 
+/*
+  Velocity and denominator agnostic version of "Note".
+  Only used for arithmetic, not to be played directly.
+*/
 class Tone : public Note { // kind of a bad name ToneLiteral?
   public:
     uint_fast32_t key;
@@ -106,6 +113,10 @@ class Tone : public Note { // kind of a bad name ToneLiteral?
     SequenceNode *operator+(SequenceNode *o);
 };
 
+/*
+  Represents the simultaneous triggering of 
+  multiple notes.
+*/
 class Chord : public SequenceParentNode {
   public:
     vector<SequenceNode *> children;
@@ -115,7 +126,7 @@ class Chord : public SequenceParentNode {
 
     Chord() = default;
     Chord(string s);
-    Chord(vector<SequenceNode *> c, uint_fast32_t v = 127, uint_fast32_t d = 16, uint_fast32_t du = 1);
+    Chord(vector<SequenceNode *> c, uint_fast32_t v = 127, uint_fast32_t d = 1, uint_fast32_t du = 1);
 
     string toString() override;
     vector<SequenceNode *> getChildren() override { return children; };
@@ -130,11 +141,38 @@ class Chord : public SequenceParentNode {
     SequenceNode *operator+(SequenceNode *o);
 };
 
+/*
+  Represents a playable sequence.
+  Holds children and renders them sequentially.
+*/
+class Sequence : public SequenceParentNode {
+  public:
+    vector<SequenceNode *> children;
+
+    Sequence() = default;
+    Sequence(vector<SequenceNode *> c);
+    Sequence(Definition *d, vector<SequenceNode *> *a);
+
+    vector<SequenceNode *> getChildren() override { return children; };
+    virtual SequenceNode::Type getType() override { return SequenceNode::SEQUENCE; };
+
+    SequenceNode *operator+(Note *o);
+    SequenceNode *operator+(Tone *o);
+    SequenceNode *operator+(Identifier *o);
+    SequenceNode *operator+(RtResource *o);
+    SequenceNode *operator+(SequenceNode *o);
+};
+
 class AmbiguousSequenceNode : public SequenceNode {
   public:
     virtual bool isAmbiguous() override {return true;};
 };
 
+/*
+  Represents an unresolved identifier. 
+  Stays ambiguous until sequence instantiation 
+  ("compile" time).
+*/
 class Identifier : public AmbiguousSequenceNode {
   public:
     string id;
@@ -158,24 +196,31 @@ class Identifier : public AmbiguousSequenceNode {
     SequenceNode *operator+(SequenceNode *o);
 };
 
-class Sequence : public SequenceParentNode {
+/*
+  Represents a realtime resource (eg. trigger note).
+  Is resolved at runtime of the mirco program.
+*/
+class RtResource : public Identifier {
   public:
-    vector<SequenceNode *> children;
+    RtResource() = default;
 
-    Sequence() = default;
-    Sequence(vector<SequenceNode *> c);
-    Sequence(Definition *d, vector<SequenceNode *> *a);
-
-    vector<SequenceNode *> getChildren() override { return children; };
-    virtual SequenceNode::Type getType() override { return SequenceNode::SEQUENCE; };
+    virtual SequenceNode::Type getType() override { return SequenceNode::RTRESOURCE; };
+    SequenceNode *disambiguate(Context e) override;
 
     SequenceNode *operator+(Note *o);
     SequenceNode *operator+(Tone *o);
+    SequenceNode *operator+(Sequence *o);
+    SequenceNode *operator+(Chord *o);
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
     SequenceNode *operator+(SequenceNode *o);
 };
 
+/*
+  Represents an unevaluated operation. 
+  Stays ambiguous until all identifiers or
+  realtime resources are resolved.
+*/
 template<typename LhsT, typename RhsT>
 class Operation : public AmbiguousSequenceNode, public RtEvent {
   public:
@@ -210,22 +255,11 @@ class Operation : public AmbiguousSequenceNode, public RtEvent {
     SequenceNode *operator+(SequenceNode *o);
 };
 
-class RtResource : public Identifier {
-  public:
-    RtResource() = default;
-
-    virtual SequenceNode::Type getType() override { return SequenceNode::RTRESOURCE; };
-    SequenceNode *disambiguate(Context e) override;
-
-    SequenceNode *operator+(Note *o);
-    SequenceNode *operator+(Tone *o);
-    SequenceNode *operator+(Sequence *o);
-    SequenceNode *operator+(Chord *o);
-    SequenceNode *operator+(Identifier *o);
-    SequenceNode *operator+(RtResource *o);
-    SequenceNode *operator+(SequenceNode *o);
-};
-
+/*
+  Represents a sequence definition.
+  Has to be constructed into a Sequence 
+  with a list of parameters.
+*/
 class Definition {
   public:
     string id;
@@ -236,11 +270,12 @@ class Definition {
     Definition(string i, vector<Identifier *> *a, vector<SequenceNode *> *b);
 };
 
-/*
-    Operation
 
-    Definition has to be kept in header file
-    because Operation is a template class
+/*
+  Operation
+
+  Definition has to be kept in header file
+  because Operation is a template class. 
 */
 
 enum Operator {

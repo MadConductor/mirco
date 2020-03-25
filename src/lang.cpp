@@ -130,7 +130,7 @@ Note::Note(string s) {
   key = noteVal;
   velocity = 127;
 
-  denominator = 16; // default denominator
+  denominator = 1; // default denominator
   dutycycle = 1; // default dutycycle
   int velIdx = s.find(":");
   int denIdx = s.find("<");
