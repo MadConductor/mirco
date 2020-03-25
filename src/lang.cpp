@@ -184,26 +184,20 @@ RtEvent *Note::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
   uint_fast32_t pulses = (MIDI_PULSES_PQN * 4) / denominator;
   uint_fast32_t offPulses = (pulses * (256 - dutycycle)) / 256;
 
-  RtNoteEvent *on = new RtNoteEvent(
-    MIDI_NOTE_ON_BYTE | channel,
+  RtNoteOnEvent *on = new RtNoteOnEvent(
+    channel,
     key,
     velocity,
     pulses - offPulses
   );
-  RtNoteEvent *off = new RtNoteEvent(
-    MIDI_NOTE_OFF_BYTE | channel,
+
+  RtNoteOffEvent *off = new RtNoteOffEvent(
+    channel,
     key,
-    velocity,
-    0
-  );
-  RtNoteEvent *offlegacy = new RtNoteEvent(//backup "0 velocity pseudo note off" for older devices
-    MIDI_NOTE_ON_BYTE | channel,
-    key,
-    0,
     offPulses
   );
+  
   on->append((RtEvent *)off);
-  on->append((RtEvent *)offlegacy);
   return (RtEvent *)on;
 };
 
@@ -357,13 +351,13 @@ RtEvent *Chord::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) 
     Note *child = static_cast<Note *>(children[i]);
     uint_fast32_t evtPulses = 0;
     if(i == size - 1) evtPulses = pulses - offPulses;
-
-    RtNoteEvent *on = new RtNoteEvent(
-      MIDI_NOTE_ON_BYTE | channel,
+    RtNoteOnEvent *on = new RtNoteOnEvent(
+      channel,
       child->key,
       velocity,
       evtPulses
     );
+      
     start->append(on);
   }
 
@@ -371,21 +365,13 @@ RtEvent *Chord::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) 
     Note *child = static_cast<Note *>(children[i]);
     uint_fast32_t evtPulses = 0;
     if(i == size - 1) evtPulses = offPulses;
-  
-    RtNoteEvent *off = new RtNoteEvent(
-      MIDI_NOTE_OFF_BYTE | channel,
+
+    RtNoteOffEvent *off = new RtNoteOffEvent(
+      channel,
       child->key,
-      velocity,
-      0
-    );
-    RtNoteEvent *offlegacy = new RtNoteEvent(//backup "0 velocity pseudo note off" for older devices
-      MIDI_NOTE_ON_BYTE | channel,
-      child->key,
-      0,
       evtPulses
     );
     start->append(off);
-    start->append(offlegacy);
   }
   return (RtEvent *)start;
 }

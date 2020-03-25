@@ -50,6 +50,7 @@ using Context = unordered_map<string, SequenceNode *>;
 #define MIDI_PULSES_PQN  940
 
 //-----------------------------------------------------------------
+class RtNoteOffEvent;
 
 class RtEvent {
   private:
@@ -59,7 +60,7 @@ class RtEvent {
     virtual uint_fast32_t getPausePulses() = 0;
     virtual void setNext(RtEvent * n) = 0;
     virtual RtEvent *getNext() = 0;
-    virtual struct RtEventResult run(RtMidiOut *m, Context r) = 0;
+    virtual struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) = 0;
     virtual void append(RtEvent * next);
 };
 
@@ -83,11 +84,11 @@ class RtNopEvent : public RtEvent {
     uint_fast32_t getPausePulses() override { return pausepulses; };
     void setNext(RtEvent *n) override { next = n; };
     RtEvent *getNext() override { return next; };
-    struct RtEventResult run(RtMidiOut *m, Context r) override;
+    struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) override;
 
 };
 
-class RtNoteEvent : public RtEvent {
+class RtNoteOnEvent : public RtEvent {
   private:
     typedef RtEvent super;
     RtEvent *next;
@@ -96,9 +97,32 @@ class RtNoteEvent : public RtEvent {
     //std::vector<unsigned char> message;
 
   public:
-    RtNoteEvent(unsigned char status, unsigned char byte2, unsigned char byte3, uint_fast32_t pulses);
+    RtNoteOnEvent(unsigned char channel, unsigned char byte2, unsigned char byte3, uint_fast32_t pulses);
     uint_fast32_t getPausePulses() override { return pausepulses; };
     void setNext(RtEvent *n) override { next = n; };
     RtEvent *getNext() override { return next; };
-    struct RtEventResult run(RtMidiOut *m, Context r) override;
+    unsigned char getChannel() { return message[0] & 0x0f; }
+    unsigned char getKey() { return message[1]; }
+    unsigned char getVelocity() { return message[2]; }
+    bool isKey(unsigned char key);
+    struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) override;
+};
+
+class RtNoteOffEvent : public RtEvent {
+  private:
+    typedef RtEvent super;
+    RtEvent *next;
+    uint_fast32_t pausepulses;
+    vector<unsigned char> message;
+    vector<unsigned char> legacyMessage;
+    //std::vector<unsigned char> message;
+
+  public:
+    RtNoteOffEvent(unsigned char channel, unsigned char byte2, uint_fast32_t pulses);
+    RtNoteOffEvent(RtNoteOnEvent *on);
+    uint_fast32_t getPausePulses() override { return pausepulses; };
+    void setNext(RtEvent *n) override { next = n; };
+    RtEvent *getNext() override { return next; };
+    unsigned char getKey() { return message[1]; }
+    struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) override;
 };

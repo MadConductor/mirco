@@ -61,6 +61,7 @@ extern FILE *yyin;
 extern unordered_map<int, RtEvent *> eventMap;
 unordered_map<int, RtEvent *> playMap;
 unordered_map<int, int> nextPulseMap;
+unordered_map<int, vector<RtNoteOnEvent *>*> openNotes;
 mutex playMutex;
 
 auto now = clk::now();
@@ -116,16 +117,26 @@ void handleOnMsg(vector<unsigned char> *message) {
   }
   lock_guard<mutex> guard(playMutex);
   playMap[key] = event;
+  openNotes[key] = new vector<RtNoteOnEvent *>({});
 }
 
 void handleOffMsg(vector<unsigned char> *message) {
   unsigned char key = message->at(1);
+  vector<RtNoteOnEvent *> *on;
+  try {
+    on = openNotes.at(key);
+  } catch (const std::out_of_range& oor) {
+    printf("Input device sent unprecedented Note Off Message\n");
+    return;
+  }
+  RtNopEvent *start = new RtNopEvent(0);
+  for(int i=0; i<(on->size()); i++) {
+    RtNoteOffEvent *off = new RtNoteOffEvent(on->at(i));
+    start->append(off);
+  }
   lock_guard<mutex> guard(playMutex);
-  playMap.erase(key);
-  nextPulseMap.erase(key);
-  // TODO: Send Note Off Event if Note is still playing
+  playMap[key] = start;
 }
-
 
 void onmessage(double deltatime, vector<unsigned char> *message, void *userData) {
   unsigned char status = message->at(0);
@@ -168,7 +179,7 @@ RtMidiIn *openMidiIn() {
   unsigned int inPorts = midiin->getPortCount();
 
   midiin->setCallback(&onmessage);
-  midiin->ignoreTypes( false, false, false );
+  midiin->ignoreTypes(false, false, false);
 
   if (inPorts == 0) {
     printf("No input ports available! Connect one manually!\n");
@@ -194,11 +205,12 @@ RtMidiOut *openMidiOut() {
 
 RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, uint_fast32_t key, uint_fast32_t totalPulses) {
   printf("Executing RtEvent at %d pulses\n", totalPulses);
-  RtEventResult res = event->run(midiout, *rtContext);
-  
-  if (res.pausepulses == 0) {
+  RtEventResult res = event->run(midiout, *rtContext, key);
+  bool end = res.next == nullptr;
+
+  if (res.pausepulses == 0 && !end) {
     res = runEvent(res.next, midiout, rtContext, key, totalPulses);
-  } else if (res.next != nullptr) {  
+  } else if (!end) {  
     lock_guard<mutex> guard(playMutex);
     nextPulseMap[key] = totalPulses + res.pausepulses;
     playMap[key] = res.next;

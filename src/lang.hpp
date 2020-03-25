@@ -199,7 +199,7 @@ class Operation : public AmbiguousSequenceNode, public RtEvent {
     uint_fast32_t getPausePulses() override { return 0; };
     void setNext(RtEvent * n) override { next = n; };
     RtEvent *getNext() override { return next; };
-    struct RtEventResult run(RtMidiOut *m, Context r) override;
+    struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t key) override;
 
     SequenceNode *operator+(Note *o);
     SequenceNode *operator+(Tone *o);
@@ -355,11 +355,11 @@ RtEvent *Operation<LhsT, RhsT>::renderRtEvents(unsigned char c, uint_fast32_t m)
 };
 
 template<typename LhsT, typename RhsT>
-struct RtEventResult Operation<LhsT, RhsT>::run(RtMidiOut *m, Context rtContext) {
+struct RtEventResult Operation<LhsT, RhsT>::run(RtMidiOut *m, Context rtContext, uint_fast32_t key) {
   SequenceNode *value = this->disambiguate(rtContext);
   RtEvent *event = value->renderRtEvents(channel, multiplier);
   event->append(next);
-  return event->run(m, rtContext);
+  return event->run(m, rtContext, key);
 };
 
 template<typename LhsT, typename RhsT>

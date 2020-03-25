@@ -3,9 +3,9 @@ sequence seq1(A) {
 }
 
 sequence seq3() {
-    C4, (C3, D#3), (1o, D#3, G3), C1:2
+    C4, (C3, D#3), (C3, D#3, G3), C3
 }
 
-default: seq1(C4)
+default: seq3()
 auto: seq1(seq3())
 C4: seq1(C4)
