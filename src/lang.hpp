@@ -63,7 +63,7 @@ class Note : public SequenceNode {
 
     Note() = default;
     Note(string s);
-    Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d);
+    Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d, uint_fast32_t du);
 
     virtual string toString() override;
     virtual SequenceNode::Type getType() override { return SequenceNode::NOTE; };

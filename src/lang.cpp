@@ -130,26 +130,33 @@ Note::Note(string s) {
   key = noteVal;
   velocity = 127;
 
-  denominator = 4; // dirty temporary hack
-  dutycycle = 254;
+  denominator = 16; // default denominator
+  dutycycle = 1; // default dutycycle
+  int velIdx = s.find(":");
+  int denIdx = s.find("<");
+  int denEndIdx = s.find(">");
 
-  if (s.length() > i) {
-    i++;
-    if (s[i] == ':') {
-      velocity = stoi(s.substr(i + 1));
-      if (velocity > 127) {
-        yyerror("Note velocity may not exceed 127.");
-      }
-      if (velocity == 0) {
-        velocity = 1; //velocity of 0 turns notes off again
-      }
+  if (velIdx > -1) {
+    velocity = stoi(s.substr(velIdx + 1, denIdx));
+    if (velocity > 127) {
+      yyerror("Note velocity may not exceed 127.");
+    }
+    if (velocity == 0) {
+      velocity = 1; //velocity of 0 turns notes off again
+    }
+  }
+
+  if (denIdx > -1) {
+    int dutyIdx = s.find("|");
+    denominator = stoi(s.substr(denIdx + 1, max(denEndIdx, dutyIdx) - 1));
+    if (dutyIdx > -1) {
+      dutycycle = stoi(s.substr(dutyIdx + 1, denEndIdx - 1));
     }
   }
 };
 
-Note::Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d) 
-  : key(k), velocity(v), denominator(d) {
-    dutycycle = 128;
+Note::Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d, uint_fast32_t du) 
+  : key(k), velocity(v), denominator(d), dutycycle(du) {
 }
 
 string Note::toString() {
@@ -182,7 +189,8 @@ void Note::setKey(uint_fast32_t k) {
 
 RtEvent *Note::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
   uint_fast32_t pulses = (MIDI_PULSES_PQN * 4) / denominator;
-  uint_fast32_t offPulses = (pulses * (256 - dutycycle)) / 256;
+  uint_fast32_t dutyPulses = pulses / dutycycle;
+  uint_fast32_t offPulses = pulses - dutyPulses;
 
   RtNoteOnEvent *on = new RtNoteOnEvent(
     channel,
@@ -196,7 +204,7 @@ RtEvent *Note::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
     key,
     offPulses
   );
-  
+
   on->append((RtEvent *)off);
   return (RtEvent *)on;
 };
@@ -207,7 +215,8 @@ SequenceNode *Note::operator+(Note *o) {
   return new Note(
     getKey() + o->getKey(),
     std::max(getVelocity(), o->getVelocity()),
-    denominator
+    denominator,
+    dutycycle
   );
 };
 
@@ -215,7 +224,8 @@ SequenceNode *Note::operator+(Tone *o) {
   return new Note(
     getKey() + o->getKey(),
     getVelocity(),
-    denominator
+    denominator,
+    dutycycle
   );
 };
 
@@ -295,7 +305,8 @@ SequenceNode *Tone::operator+(Note *o) {
   return new Note(
     getKey() + o->getKey(),
     o->getVelocity(),
-    o->denominator
+    o->denominator,
+    o->dutycycle
   );
 };
 
@@ -338,19 +349,21 @@ Chord::Chord(string s) {
 
 Chord::Chord(vector<SequenceNode *> c, uint_fast32_t v) : children(c), velocity(v) {
   denominator = 16;
-  dutycycle = 128;
+  dutycycle = 1;
 }
 
 RtEvent *Chord::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
   uint_fast32_t pulses = (MIDI_PULSES_PQN * 4) / denominator;
-  uint_fast32_t offPulses = (pulses * (256 - dutycycle)) / 256;
+  uint_fast32_t dutyPulses = pulses / dutycycle;
+  uint_fast32_t offPulses = pulses - dutyPulses;
+
   uint_fast32_t size = children.size();
   RtNopEvent *start = new RtNopEvent(0);
 
   for (int i=0; i<size; i++) {
     Note *child = static_cast<Note *>(children[i]);
     uint_fast32_t evtPulses = 0;
-    if(i == size - 1) evtPulses = pulses - offPulses;
+    if(i == size - 1) evtPulses = dutyPulses;
     RtNoteOnEvent *on = new RtNoteOnEvent(
       channel,
       child->key,

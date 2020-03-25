@@ -10,7 +10,7 @@
 
 DIGIT [0-9]
 INT [1-9]{DIGIT}*
-NOTE [ABCDEFGHabcdefgh](#|b)?[0-9](\:[0-9]{1,3})?
+NOTE [ABCDEFGHabcdefgh](#|b)?[0-9](\:{INT})?(<{INT}(\|{INT})?>)?
 OPERATOR [\+\-\*\/\=]
 SEMITONE {INT}[s]
 OCTAVE {INT}[o]
