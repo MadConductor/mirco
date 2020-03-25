@@ -11,7 +11,7 @@
     \  \:\         \__\/      \  \:\        \  \::/       \  \::/   
      \__\/                     \__\/         \__\/         \__\/    
   
-  Sequence Definition Language
+  Sequence Definition Language (c) 2020 Mircosoft
 
   Lukas Hannen, Max Wolschlager
 */
@@ -232,11 +232,14 @@ RtMidiIn *openMidiIn() {
     }
     midiin->openPort(
         GLOBAL_SETTINGS.INPUT_PORT.val);
+    printf("Opened midi input port: %s\n", midiin->getPortName(GLOBAL_SETTINGS.INPUT_PORT.val).c_str());
+
   } else {
     if (inPorts == 0) {
       printf("No input ports available! Connect one manually!\n");
     } else {
       midiin->openPort(GLOBAL_SETTINGS.INPUT_PORT.val);
+      printf("Opened midi input port: %s\n", midiin->getPortName(GLOBAL_SETTINGS.INPUT_PORT.val).c_str());
     }
   }
   return midiin;
@@ -261,12 +264,14 @@ RtMidiOut *openMidiOut() {
     }
     midiout->openPort(
         GLOBAL_SETTINGS.OUTPUT_PORT.val);
+    printf("Opened midi output port: %s\n", midiout->getPortName(GLOBAL_SETTINGS.OUTPUT_PORT.val).c_str());
   } else {
     if (outPorts == 0) {
       printf("No input ports available! Connect one manually!\n");
     } else {
       midiout->openPort(
           GLOBAL_SETTINGS.OUTPUT_PORT.val);
+      printf("Opened midi output port: %s\n", midiout->getPortName(GLOBAL_SETTINGS.OUTPUT_PORT.val).c_str());
     }
   }
   return midiout;
