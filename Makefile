@@ -5,6 +5,9 @@ DEBUG_FLAGS=-ggdb3 -O0 -DDEBUG
 FILES=src/lang.cpp src/rtseq.cpp src/param.cpp build/parser.cpp build/lexer.cpp src/main.cpp
 OBJECTS=$(subst src/,build/,$(FILES:.cpp=.o))
 
+release: DEBUG_FLAGS =
+release: mirco
+
 default: mirco
 
 clean:
