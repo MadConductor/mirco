@@ -347,9 +347,8 @@ Chord::Chord(string s) {
   // TODO: Parse chord notation like "C#msus"
 }
 
-Chord::Chord(vector<SequenceNode *> c, uint_fast32_t v) : children(c), velocity(v) {
-  denominator = 16;
-  dutycycle = 1;
+Chord::Chord(vector<SequenceNode *> c, uint_fast32_t v, uint_fast32_t d, uint_fast32_t du) 
+  : children(c), velocity(v), denominator(d), dutycycle(du) {
 }
 
 RtEvent *Chord::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
@@ -409,7 +408,7 @@ SequenceNode *Chord::operator+(Note *o) {
   for (int i=0; i<children.size(); i++) {
     c.push_back(*(children[i]) + o);
   }
-  return new Chord(c, velocity);
+  return new Chord(c, velocity, denominator, dutycycle);
 };
 
 SequenceNode *Chord::operator+(Tone *o) {  
@@ -417,7 +416,7 @@ SequenceNode *Chord::operator+(Tone *o) {
   for (int i=0; i<children.size(); i++) {
     c.push_back(*(children[i]) + o);
   }
-  return new Chord(c, velocity);
+  return new Chord(c, velocity, denominator, dutycycle);
 };
 
 SequenceNode *Chord::operator+(Identifier *o) {

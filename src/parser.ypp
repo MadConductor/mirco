@@ -228,7 +228,27 @@ sequence:
 ;
 
 chord:
-  '(' node_list ')' {
+  '(' node_list ')' ':' INT '<' INT '>' {
+    Chord *c = new Chord(*$2, $5, $7);
+    $$ = c;
+  }
+  | '(' node_list ')' ':' INT '<' INT '|' INT '>'{
+    Chord *c = new Chord(*$2, $5, $7, $9);
+    $$ = c;
+  }
+  | '(' node_list ')' '<' INT '>' {
+    Chord *c = new Chord(*$2, 127, $5);
+    $$ = c;
+  }
+  | '(' node_list ')' '<' INT '|' INT '>'{
+    Chord *c = new Chord(*$2, 127, $5, $7);
+    $$ = c;
+  }
+  | '(' node_list ')' ':' INT {
+    Chord *c = new Chord(*$2, $5);
+    $$ = c;
+  }
+  | '(' node_list ')' {
     Chord *c = new Chord(*$2);
     $$ = c;
   }

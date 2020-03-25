@@ -10,7 +10,9 @@
 
 DIGIT [0-9]
 INT [1-9]{DIGIT}*
-NOTE [ABCDEFGHabcdefgh](#|b)?[0-9](\:{INT})?(<{INT}(\|{INT})?>)?
+VELOCITY \:{INT}
+DENOMINATOR <{INT}(\|{INT})?>
+NOTE [ABCDEFGHabcdefgh](#|b)?[0-9]({VELOCITY})?({DENOMINATOR})?
 OPERATOR [\+\-\*\/\=]
 SEMITONE {INT}[s]
 OCTAVE {INT}[o]
@@ -57,7 +59,7 @@ auto            { return AUTO; }
   return INT;
 }
 
-[\(\)\{\}:;,]    { return yytext[0]; }
+[\(\)\{\}\|:;,<>]    { return yytext[0]; }
 
 {OPERATOR} { 
   yylval.sval = strdup(yytext); 

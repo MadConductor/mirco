@@ -115,7 +115,7 @@ class Chord : public SequenceParentNode {
 
     Chord() = default;
     Chord(string s);
-    Chord(vector<SequenceNode *> c, uint_fast32_t v = 127);
+    Chord(vector<SequenceNode *> c, uint_fast32_t v = 127, uint_fast32_t d = 16, uint_fast32_t du = 1);
 
     string toString() override;
     vector<SequenceNode *> getChildren() override { return children; };
