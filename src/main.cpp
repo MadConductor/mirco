@@ -167,6 +167,7 @@ void handleOffMsg(vector<unsigned char> *message) {
     return;
   }
   RtNopEvent *start = new RtNopEvent(0);
+  // TODO: thread safety
   for(int i=0; i<(on->size()); i++) {
     RtNoteOffEvent *off = new RtNoteOffEvent(on->at(i));
     start->append(off);
@@ -317,7 +318,7 @@ void outputLoop() {
 
   while (true) {
     if (totalPulses % (INTERNAL_PPQN*4) == 0) {
-      printf("Bar completed in output thread \n");
+      printf("Bar completed in output thread %f \n", bpm);
       // reestimate bpm every bar (lo-pass bitcrusher :P)
       bpm = estimateBpm();
     }

@@ -58,6 +58,7 @@ void unpack_cmdline(struct global_settings *settings, char *&filename, int argc,
                   settings->BACKEND = {RtMidi::Api::UNSPECIFIED, true};
                   break;
               }
+              break;
             case 'b':
               settings->DEFAULT_BPM = {(uint_fast16_t)atol(optarg), true};
               //TODO error checking
