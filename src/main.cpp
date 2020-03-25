@@ -60,7 +60,7 @@ extern FILE *yyin;
 
 extern unordered_map<int, RtEvent *> eventMap;
 unordered_map<int, RtEvent *> playMap;
-unordered_map<int, int> lastPulseMap;
+unordered_map<int, int> nextPulseMap;
 mutex playMutex;
 
 auto now = clk::now();
@@ -122,7 +122,8 @@ void handleOffMsg(vector<unsigned char> *message) {
   unsigned char key = message->at(1);
   lock_guard<mutex> guard(playMutex);
   playMap.erase(key);
-  lastPulseMap.erase(key);
+  nextPulseMap.erase(key);
+  // TODO: Send Note Off Event if Note is still playing
 }
 
 
@@ -191,31 +192,23 @@ RtMidiOut *openMidiOut() {
   return midiout;
 }
 
-void runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, uint_fast32_t key, uint_fast32_t totalPulses) {
-  int lastPulse;
-  try {
-    lastPulse = lastPulseMap.at(key);
-  } catch (const std::out_of_range& oor) {
-    lastPulse = totalPulses;
+RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, uint_fast32_t key, uint_fast32_t totalPulses) {
+  printf("Executing RtEvent at %d pulses\n", totalPulses);
+  RtEventResult res = event->run(midiout, *rtContext);
+  
+  if (res.pausepulses == 0) {
+    res = runEvent(res.next, midiout, rtContext, key, totalPulses);
+  } else if (res.next != nullptr) {  
+    lock_guard<mutex> guard(playMutex);
+    nextPulseMap[key] = totalPulses + res.pausepulses;
+    playMap[key] = res.next;
+  } else {
+    printf("Sequence Ended\n");
+    lock_guard<mutex> guard(playMutex);
+    playMap.erase(key);
+    nextPulseMap.erase(key);
   }
-
-  if ((lastPulse + (event->getPausePulses())) <= totalPulses) {
-    RtEventResult res = event->run(midiout, *rtContext);
-    
-    if (res.next != nullptr) {  
-      lock_guard<mutex> guard(playMutex);
-      playMap[key] = res.next;
-      lastPulseMap[key] = totalPulses;
-      if (res.pausepulses == 0) {
-        runEvent(res.next, midiout, rtContext, key, totalPulses);
-      }
-    } else {
-      printf("Sequence Ended\n");
-      lock_guard<mutex> guard(playMutex);
-      playMap.erase(key);
-      lastPulseMap.erase(key);
-    }
-  }
+  return res; 
 }      
 
 void outputLoop() {
@@ -242,7 +235,16 @@ void outputLoop() {
     while (it != playMapCopy.end()) {
       int key = it->first;
       RtEvent *event = it->second;
-      runEvent(event, midiout, rtContext, key, totalPulses);
+      int nextPulse;
+      try {
+        nextPulse = nextPulseMap.at(key);
+      } catch (const std::out_of_range& oor) {
+        nextPulse = totalPulses;
+      }
+
+      if (nextPulse <= totalPulses) {
+        runEvent(event, midiout, rtContext, key, totalPulses);
+      }
       it++;
     }
     totalPulses++;

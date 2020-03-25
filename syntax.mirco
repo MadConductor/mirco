@@ -1,4 +1,3 @@
-
 sequence seq1(A) {
     1o + A, A, A, A
 }

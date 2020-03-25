@@ -130,8 +130,8 @@ Note::Note(string s) {
   key = noteVal;
   velocity = 127;
 
-  denominator = 16; // dirty temporary hack
-  dutycycle = 128;
+  denominator = 4; // dirty temporary hack
+  dutycycle = 254;
 
   if (s.length() > i) {
     i++;

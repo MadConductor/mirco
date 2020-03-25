@@ -272,7 +272,7 @@ map_target:
 
 mapping: 
   map_target ':' sequence_node {
-    eventMap[$1] = $3->renderRtEvents(1,1);
+    eventMap[$1] = $3->renderRtEvents(0x00,1);
     printf(($3->toString()).c_str());
     printf("\n");
   }

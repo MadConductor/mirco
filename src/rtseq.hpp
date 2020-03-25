@@ -92,11 +92,10 @@ class RtNoteEvent : public RtEvent {
     typedef RtEvent super;
     RtEvent *next;
     uint_fast32_t pausepulses;
-    unsigned char message[3];
+    vector<unsigned char> message;
     //std::vector<unsigned char> message;
 
   public:
-    RtNoteEvent(unsigned char status, unsigned char byte2, unsigned char byte3);
     RtNoteEvent(unsigned char status, unsigned char byte2, unsigned char byte3, uint_fast32_t pulses);
     uint_fast32_t getPausePulses() override { return pausepulses; };
     void setNext(RtEvent *n) override { next = n; };
