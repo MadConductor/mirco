@@ -216,7 +216,7 @@ void onmessage(double deltatime, vector<unsigned char> *message, void *userData)
 */
 RtMidiIn *openMidiIn() {
   RtMidiIn *midiin = new RtMidiIn(
-    RtMidi::Api::UNSPECIFIED, // TODO: Command line parameter
+    GLOBAL_SETTINGS.BACKEND.val,
     "Mirco Sequencer"
   );
   unsigned int inPorts = midiin->getPortCount();
@@ -247,7 +247,7 @@ RtMidiIn *openMidiIn() {
 */
 RtMidiOut *openMidiOut() {
   RtMidiOut *midiout = new RtMidiOut(
-    RtMidi::Api::UNSPECIFIED, // TODO: Command line parameter
+    GLOBAL_SETTINGS.BACKEND.val,
     "Mirco Sequencer"
   );  
   unsigned int outPorts = midiout->getPortCount();

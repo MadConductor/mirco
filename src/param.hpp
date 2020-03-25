@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include "rtmidi/RtMidi.h"
 
 template <typename T>
 struct param{
@@ -20,6 +21,8 @@ struct global_settings {
   param<uint_fast16_t> DEFAULT_BPM;
 
   param<bool> FOLLOW_INPUT_STARTSTOP;
+
+  param<RtMidi::Api> BACKEND;
 };
 
 void init_settings(struct global_settings &settings);
