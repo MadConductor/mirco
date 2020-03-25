@@ -47,7 +47,7 @@ using Context = unordered_map<string, SequenceNode *>;
 #define MIDI_STOP_BYTE       0xFC
 //no data bytes
 
-#define MIDI_PULSES_PQN  940
+#define MIDI_PULSES_PQN  960
 
 //-----------------------------------------------------------------
 class RtNoteOffEvent;
