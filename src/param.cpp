@@ -5,6 +5,7 @@
 #include <getopt.h>
 
 #include "param.hpp"
+#include "error.hpp"
 
 #define DEFAULT_EXTERNAL_PPQN 24
 
@@ -95,7 +96,7 @@ void unpack_cmdline(struct global_settings *settings, char *&filename, int argc,
     filename = argv[optind];
     optind++;
     while (optind < argc) {//DEBUG
-      printf("other parameter: <%s>\n", argv[optind++]);
+      debug("other parameter: <%s>\n", argv[optind++]);
     }
 }
 

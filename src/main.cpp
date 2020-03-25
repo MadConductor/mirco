@@ -41,6 +41,7 @@
 #include "lang.hpp"
 #include "rtseq.hpp"
 #include "param.hpp"
+#include "error.hpp"
 
 
 using clk = chrono::high_resolution_clock;
@@ -186,16 +187,16 @@ void onmessage(double deltatime, vector<unsigned char> *message, void *userData)
       if(GLOBAL_SETTINGS.FOLLOW_INPUT_CLOCK.val)handleClockPulse(message);
       break;
     case MIDI_START_BYTE:
-      printf("Received Midi Clock Start Message \n");
+      debug("Received Midi Clock Start Message \n");
       break;
     case MIDI_CONTINUE_BYTE:
-      printf("Received Midi Clock Continue Message \n");
+      debug("Received Midi Clock Continue Message \n");
       break;
     case MIDI_STOP_BYTE:
-      printf("Received Midi Clock Stop Message \n");
+      debug("Received Midi Clock Stop Message \n");
       break;
     case MIDI_POS_PTR_BYTE:
-      printf("Received Midi Position Pointer Message \n");
+      debug("Received Midi Position Pointer Message \n");
       break;
     case MIDI_NOTE_ON_BYTE:
       handleOnMsg(message);
@@ -204,11 +205,11 @@ void onmessage(double deltatime, vector<unsigned char> *message, void *userData)
       handleOffMsg(message);
       break;
     case MIDI_POLY_AFTER_BYTE:
-      printf("Received Midi Note Aftertouch Message \n");
+      debug("Received Midi Note Aftertouch Message \n");
       break;
     default:
       fprintf(stderr, "Unknown Midi Message: 0x%x \n", status);
-      break;
+      break;//TODO move this to debug(...) ?
   }
 }
 
@@ -226,21 +227,21 @@ RtMidiIn *openMidiIn() {
   midiin->ignoreTypes(false, false, false);
 
   if(GLOBAL_SETTINGS.INPUT_PORT.changed){
-    printf("Opening midi input port: %d\n", GLOBAL_SETTINGS.INPUT_PORT.val);
+    debug("Opening midi input port: %d\n", GLOBAL_SETTINGS.INPUT_PORT.val);
     while(inPorts <= GLOBAL_SETTINGS.INPUT_PORT.val){
       inPorts = midiin->getPortCount();
       //if port is specified but not there, wait until port is available
     }
     midiin->openPort(
         GLOBAL_SETTINGS.INPUT_PORT.val);
-    printf("Opened midi input port: %s\n", midiin->getPortName(GLOBAL_SETTINGS.INPUT_PORT.val).c_str());
+    debug("Opened midi input port: %s\n", midiin->getPortName(GLOBAL_SETTINGS.INPUT_PORT.val).c_str());
 
   } else {
     if (inPorts == 0) {
-      printf("No input ports available! Connect one manually!\n");
+      debug("No input ports available! Connect one manually!\n");
     } else {
       midiin->openPort(GLOBAL_SETTINGS.INPUT_PORT.val);
-      printf("Opened midi input port: %s\n", midiin->getPortName(GLOBAL_SETTINGS.INPUT_PORT.val).c_str());
+      debug("Opened midi input port: %s\n", midiin->getPortName(GLOBAL_SETTINGS.INPUT_PORT.val).c_str());
     }
   }
   return midiin;
@@ -257,7 +258,7 @@ RtMidiOut *openMidiOut() {
   unsigned int outPorts = midiout->getPortCount();
 
   if (GLOBAL_SETTINGS.OUTPUT_PORT.changed) {
-    printf("Opening midi output port: %d\n", GLOBAL_SETTINGS.OUTPUT_PORT.val);
+    debug("Opening midi output port: %d\n", GLOBAL_SETTINGS.OUTPUT_PORT.val);
 
     while (outPorts <= GLOBAL_SETTINGS.OUTPUT_PORT.val) {
       outPorts = midiout->getPortCount();
@@ -265,14 +266,14 @@ RtMidiOut *openMidiOut() {
     }
     midiout->openPort(
         GLOBAL_SETTINGS.OUTPUT_PORT.val);
-    printf("Opened midi output port: %s\n", midiout->getPortName(GLOBAL_SETTINGS.OUTPUT_PORT.val).c_str());
+    debug("Opened midi output port: %s\n", midiout->getPortName(GLOBAL_SETTINGS.OUTPUT_PORT.val).c_str());
   } else {
     if (outPorts == 0) {
-      printf("No input ports available! Connect one manually!\n");
+      fprintf(stderr,"No input ports available! Connect one manually!\n");
     } else {
       midiout->openPort(
           GLOBAL_SETTINGS.OUTPUT_PORT.val);
-      printf("Opened midi output port: %s\n", midiout->getPortName(GLOBAL_SETTINGS.OUTPUT_PORT.val).c_str());
+      debug("Opened midi output port: %s\n", midiout->getPortName(GLOBAL_SETTINGS.OUTPUT_PORT.val).c_str());
     }
   }
   return midiout;
@@ -284,7 +285,7 @@ RtMidiOut *openMidiOut() {
   Erases event from playMap if it has no successor. 
 */
 RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, uint_fast32_t key, uint_fast32_t totalPulses) {
-  printf("Executing RtEvent at %d pulses\n", totalPulses);
+  debug("Executing RtEvent at %d pulses\n", totalPulses);
   RtEventResult res = event->run(midiout, *rtContext, key);
   bool end = res.next == nullptr;
 
@@ -295,7 +296,7 @@ RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, u
     nextPulseMap[key] = totalPulses + res.pausepulses;
     playMap[key] = res.next;
   } else {
-    printf("Sequence Ended\n");
+    debug("Sequence Ended\n");
     lock_guard<mutex> guard(playMutex);
     playMap.erase(key);
     nextPulseMap.erase(key);
@@ -318,7 +319,7 @@ void outputLoop() {
 
   while (true) {
     if (totalPulses % (INTERNAL_PPQN*4) == 0) {
-      printf("Bar completed in output thread %f \n", bpm);
+    debug("Bar completed in output thread %f \n", bpm);
       // reestimate bpm every bar (lo-pass bitcrusher :P)
       bpm = estimateBpm();
     }
@@ -372,9 +373,7 @@ int main(int argc, char* argv[]) {
 
   FILE *file = fopen(filename, "r");
   if (!file) {
-    printf("Cannot open: ");
-    printf(filename);
-    printf("\n");
+    fprintf(stderr,"Cannot open: %s\n", filename);
     return -1;
   }
   yyin = file;
