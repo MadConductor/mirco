@@ -1,16 +1,16 @@
 /*
-      ___                       ___           ___           ___     
-     /__/\        ___          /  /\         /  /\         /  /\    
-    |  |::\      /  /\        /  /::\       /  /:/        /  /::\   
-    |  |:|:\    /  /:/       /  /:/\:\     /  /:/        /  /:/\:\  
-  __|__|:|\:\  /__/::\      /  /:/~/:/    /  /:/  ___   /  /:/  \:\ 
+      ___                       ___           ___           ___
+     /__/\        ___          /  /\         /  /\         /  /\
+    |  |::\      /  /\        /  /::\       /  /:/        /  /::\
+    |  |:|:\    /  /:/       /  /:/\:\     /  /:/        /  /:/\:\
+  __|__|:|\:\  /__/::\      /  /:/~/:/    /  /:/  ___   /  /:/  \:\
  /__/::::| \:\ \__\/\:\__  /__/:/ /:/___ /__/:/  /  /\ /__/:/ \__\:\
  \  \:\~~\__\/    \  \:\/\ \  \:\/:::::/ \  \:\ /  /:/ \  \:\ /  /:/
-  \  \:\           \__\::/  \  \::/~~~~   \  \:\  /:/   \  \:\  /:/ 
-   \  \:\          /__/:/    \  \:\        \  \:\/:/     \  \:\/:/  
-    \  \:\         \__\/      \  \:\        \  \::/       \  \::/   
-     \__\/                     \__\/         \__\/         \__\/    
-  
+  \  \:\           \__\::/  \  \::/~~~~   \  \:\  /:/   \  \:\  /:/
+   \  \:\          /__/:/    \  \:\        \  \:\/:/     \  \:\/:/
+    \  \:\         \__\/      \  \:\        \  \::/       \  \::/
+     \__\/                     \__\/         \__\/         \__\/
+
   Sequence Definition Language
 
   Lukas Hannen, Max Wolschlager
@@ -93,7 +93,7 @@ uint_fast32_t numPulses = 0;
   Averages the last bar of clock message deltas
   in order to get a steady bpm value.
 */
-float estimateBpm() { 
+float estimateBpm() {
   if(!GLOBAL_SETTINGS.FOLLOW_INPUT_CLOCK.val) return GLOBAL_SETTINGS.DEFAULT_BPM.val;
   int size = deltas.size();
   chrono::nanoseconds avgDelta(0);
@@ -109,7 +109,7 @@ float estimateBpm() {
 
 /*
   Handles an incoming clock pulse by computing
-  the time since the last clock pulse and 
+  the time since the last clock pulse and
   storing it.
 */
 void handleClockPulse(vector<unsigned char> *message) {
@@ -122,8 +122,8 @@ void handleClockPulse(vector<unsigned char> *message) {
   if (deltas.size() > (GLOBAL_SETTINGS.INPUT_PPQN.val * 4)) {
     deltas.pop_front();
   }
-  if (numPulses % (GLOBAL_SETTINGS.INPUT_PPQN.val * 4) == 0) { 
-    printf("Estimated BPM: %f\n", estimateBpm()); 
+  if (numPulses % (GLOBAL_SETTINGS.INPUT_PPQN.val * 4) == 0) {
+    printf("Estimated BPM: %f\n", estimateBpm());
   }
 
   lastPulse = now;
@@ -142,7 +142,7 @@ void handleOnMsg(vector<unsigned char> *message) {
     event = eventMap.at(key);
   } catch (const std::out_of_range& oor) {
     try {
-      event = eventMap.at(-2); // default mapping 
+      event = eventMap.at(-2); // default mapping
     } catch (const std::out_of_range& oor) {
       return;
     }
@@ -184,25 +184,25 @@ void onmessage(double deltatime, vector<unsigned char> *message, void *userData)
     case MIDI_TIME_CLOCK_BYTE:
       if(GLOBAL_SETTINGS.FOLLOW_INPUT_CLOCK.val)handleClockPulse(message);
       break;
-    case MIDI_START_BYTE: 
+    case MIDI_START_BYTE:
       printf("Received Midi Clock Start Message \n");
       break;
-    case MIDI_CONTINUE_BYTE: 
+    case MIDI_CONTINUE_BYTE:
       printf("Received Midi Clock Continue Message \n");
       break;
-    case MIDI_STOP_BYTE: 
+    case MIDI_STOP_BYTE:
       printf("Received Midi Clock Stop Message \n");
       break;
-    case MIDI_POS_PTR_BYTE: 
+    case MIDI_POS_PTR_BYTE:
       printf("Received Midi Position Pointer Message \n");
       break;
-    case MIDI_NOTE_ON_BYTE: 
+    case MIDI_NOTE_ON_BYTE:
       handleOnMsg(message);
       break;
     case MIDI_NOTE_OFF_BYTE:
       handleOffMsg(message);
       break;
-    case MIDI_POLY_AFTER_BYTE: 
+    case MIDI_POLY_AFTER_BYTE:
       printf("Received Midi Note Aftertouch Message \n");
       break;
     default:
@@ -249,7 +249,7 @@ RtMidiOut *openMidiOut() {
   RtMidiOut *midiout = new RtMidiOut(
     GLOBAL_SETTINGS.BACKEND.val,
     "Mirco Sequencer"
-  );  
+  );
   unsigned int outPorts = midiout->getPortCount();
 
   if (GLOBAL_SETTINGS.OUTPUT_PORT.changed) {
@@ -284,7 +284,7 @@ RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, u
 
   if (res.pausepulses == 0 && !end) {
     res = runEvent(res.next, midiout, rtContext, key, totalPulses);
-  } else if (!end) {  
+  } else if (!end) {
     lock_guard<mutex> guard(playMutex);
     nextPulseMap[key] = totalPulses + res.pausepulses;
     playMap[key] = res.next;
@@ -294,7 +294,7 @@ RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, u
     playMap.erase(key);
     nextPulseMap.erase(key);
   }
-  return res; 
+  return res;
 }
 
 /*
@@ -303,7 +303,7 @@ RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, u
 void outputLoop() {
   RtMidiOut *midiout = openMidiOut();
   // stores how many internal clock pulses have passed
-  uint_fast32_t totalPulses = 0; 
+  uint_fast32_t totalPulses = 0;
   // TODO: add realtime context (trigger note eg.)
   Context *rtContext = new Context({});
   float bpm = estimateBpm();
@@ -321,7 +321,7 @@ void outputLoop() {
       playMapCopy = unordered_map<int, RtEvent *>(playMap);
     }
 
-    // calculate when the next internal clock 
+    // calculate when the next internal clock
     // pulse will happen in nanoseconds
     uint_fast32_t pulseDelay = (NS_MIN / (bpm * INTERNAL_PPQN));
     auto nextPulseNs = clk::now() + chrono::nanoseconds(pulseDelay);
@@ -347,7 +347,7 @@ void outputLoop() {
       it++;
     }
     totalPulses++;
-    
+
     // sleep thread until next internal pulse
     // TODO: support high bpm (will only work
     // on real time kernels as of now)
