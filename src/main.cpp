@@ -335,6 +335,7 @@ void outputLoop() {
 //SECTION main -----------------------------------
 int main(int argc, char* argv[]) {
   init_settings(GLOBAL_SETTINGS);
+  unpack_cmdline(&GLOBAL_SETTINGS, argc, argv);
 
   // open mirco file
   char *filename = argv[1];

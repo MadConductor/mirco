@@ -11,12 +11,16 @@ struct param{
 };
 
 struct global_settings {
+  param<uint_fast16_t> INPUT_PORT;
+  param<uint_fast16_t> OUTPUT_PORT;
+
   param<bool> FOLLOW_INPUT_CLOCK;
   param<uint_fast16_t> INPUT_PPQN;
-  param<bool> FOLLOW_INPUT_STARTSTOP;
-  param<uint_fast16_t> DEFAULT_BPM;
-};
 
+  param<uint_fast16_t> DEFAULT_BPM;
+
+  param<bool> FOLLOW_INPUT_STARTSTOP;
+};
 
 void init_settings(struct global_settings &settings);
 
