@@ -10,6 +10,7 @@
 
 DIGIT [0-9]
 INT [1-9]{DIGIT}*
+IDENTIFIER [a-zA-Z][a-zA-Z0-9]* 
 VELOCITY \:{INT}
 DENOMINATOR <{INT}(\|{INT})?>
 NOTE [ABCDEFGHabcdefgh](#|b)?[0-9]({VELOCITY})?({DENOMINATOR})?
@@ -33,13 +34,19 @@ auto            { return AUTO; }
 }
 
 {NOTE}    {
-  Note *note = new Note(yytext);
+  Note *note = new Note(strdup(yytext));
   yylval.noteval = note;
   return NOTE;
 }
 
-[a-zA-Z][a-zA-Z0-9]*    { 
-  Identifier *id = new Identifier(yytext);
+\${IDENTIFIER}   { 
+  RtResource *rr = new RtResource(strdup(yytext));
+  yylval.rtresourceval = rr;
+  return RTRESOURCE;
+}
+
+{IDENTIFIER}   { 
+  Identifier *id = new Identifier(strdup(yytext));
   yylval.idval = id;
   return IDENTIFIER;
 }

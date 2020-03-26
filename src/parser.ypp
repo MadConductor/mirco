@@ -33,6 +33,7 @@ void yyerror(const char *s) {
   SequenceNode *nodeval;
   SequenceParentNode *parentval;
   Sequence *sequenceval;
+  RtResource *rtresourceval;
   Chord *chordval;
   vector<SequenceNode *> *nodelistval;
   vector<Identifier *> *idlistval;
@@ -44,6 +45,7 @@ void yyerror(const char *s) {
 %token <idval>  IDENTIFIER
 %token <noteval>  NOTE
 %token <toneval>  TONE_LITERAL
+%token <rtresourceval>  RTRESOURCE
 %token <sval>  OPERATOR
 
 // unused
@@ -71,6 +73,9 @@ void yyerror(const char *s) {
 operation: 
   IDENTIFIER OPERATOR IDENTIFIER {
     $$ = doOperation($2, $1, $3);
+  }  
+  | IDENTIFIER OPERATOR RTRESOURCE {
+    $$ = doOperation($2, $1, $3);
   }
   | IDENTIFIER OPERATOR NOTE {
     $$ = doOperation($2, $1, $3);
@@ -88,7 +93,32 @@ operation:
     $$ = doOperation($2, $1, $4);
   }
 
+  | RTRESOURCE OPERATOR IDENTIFIER {
+    $$ = doOperation($2, $1, $3);
+  }  
+  | RTRESOURCE OPERATOR RTRESOURCE {
+    $$ = doOperation($2, $1, $3);
+  }
+  | RTRESOURCE OPERATOR NOTE {
+    $$ = doOperation($2, $1, $3);
+  }
+  | RTRESOURCE OPERATOR TONE_LITERAL {
+    $$ = doOperation($2, $1, $3);
+  }
+  | RTRESOURCE OPERATOR sequence {
+    $$ = doOperation($2, $1, $3);
+  }  
+  | RTRESOURCE OPERATOR chord {
+    $$ = doOperation($2, $1, $3);
+  }
+  | RTRESOURCE OPERATOR '(' operation ')' {
+    $$ = doOperation($2, $1, $4);
+  }
+
   | NOTE OPERATOR NOTE {
+    $$ = doOperation($2, $1, $3);
+  }
+  | NOTE OPERATOR RTRESOURCE {
     $$ = doOperation($2, $1, $3);
   }
   | NOTE OPERATOR IDENTIFIER {
@@ -110,6 +140,9 @@ operation:
   | TONE_LITERAL OPERATOR TONE_LITERAL {
     $$ = doOperation($2, $1, $3);
   }
+  | TONE_LITERAL OPERATOR RTRESOURCE {
+    $$ = doOperation($2, $1, $3);
+  }
   | TONE_LITERAL OPERATOR IDENTIFIER {
     $$ = doOperation($2, $1, $3);
   }
@@ -127,6 +160,9 @@ operation:
   }
 
   | sequence OPERATOR sequence {
+    $$ = doOperation($2, $1, $3);
+  }
+  | sequence OPERATOR RTRESOURCE {
     $$ = doOperation($2, $1, $3);
   }
   | sequence OPERATOR IDENTIFIER {
@@ -148,6 +184,9 @@ operation:
   | chord OPERATOR chord {
     $$ = doOperation($2, $1, $3);
   }
+  | chord OPERATOR RTRESOURCE {
+    $$ = doOperation($2, $1, $3);
+  }
   | chord OPERATOR IDENTIFIER {
     $$ = doOperation($2, $1, $3);
   }
@@ -165,6 +204,9 @@ operation:
   }
     
   | operation OPERATOR chord {
+    $$ = doOperation($2, $1, $3);
+  }
+  | operation OPERATOR RTRESOURCE {
     $$ = doOperation($2, $1, $3);
   }
   | operation OPERATOR IDENTIFIER {
@@ -256,6 +298,9 @@ chord:
 
 sequence_node:
   IDENTIFIER {
+    $$ = (SequenceNode *)$1;
+  } 
+  | RTRESOURCE {
     $$ = (SequenceNode *)$1;
   } 
   | NOTE {

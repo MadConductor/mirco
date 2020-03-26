@@ -36,6 +36,7 @@ class SequenceNode {
     SequenceNode *operator+(Chord *o);
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
+    SequenceNode *operator+(SequenceNode *o);
 
     SequenceNode *operator-(Note *o);
     SequenceNode *operator-(Tone *o);
@@ -43,6 +44,7 @@ class SequenceNode {
     SequenceNode *operator-(Chord *o);
     SequenceNode *operator-(Identifier *o);
     SequenceNode *operator-(RtResource *o);
+    SequenceNode *operator-(SequenceNode *o);
 };
 
 class SequenceParentNode: public SequenceNode {
@@ -212,7 +214,6 @@ class AmbiguousSequenceNode : public SequenceNode {
 class Identifier : public AmbiguousSequenceNode {
   public:
     string id;
-    SequenceNode *resolvedValue;
 
     Identifier() = default;
     Identifier(string i);
@@ -220,8 +221,8 @@ class Identifier : public AmbiguousSequenceNode {
     string toString() override;
     virtual SequenceNode::Type getType() override { return SequenceNode::IDENTIFIER; };
 
-    RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
-    SequenceNode *disambiguate(Context e) override;
+    virtual RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
+    virtual SequenceNode *disambiguate(Context e) override;
 
     SequenceNode *operator+(Note *o);
     SequenceNode *operator+(Tone *o);
@@ -246,9 +247,12 @@ class Identifier : public AmbiguousSequenceNode {
 */
 class RtResource : public Identifier {
   public:
-    RtResource() = default;
+    string id;
 
-    virtual SequenceNode::Type getType() override { return SequenceNode::RTRESOURCE; };
+    RtResource() = default;
+    RtResource(string i);
+
+    SequenceNode::Type getType() override { return SequenceNode::RTRESOURCE; };
     SequenceNode *disambiguate(Context e) override;
 
     SequenceNode *operator+(Note *o);
@@ -279,7 +283,7 @@ class Operation : public AmbiguousSequenceNode, public RtEvent {
     string op;
     LhsT *lhs;
     RhsT *rhs;
-    RtEvent *next;
+    RtEvent *next = nullptr;
 
     unsigned char channel;
     uint_fast32_t multiplier;
@@ -294,7 +298,7 @@ class Operation : public AmbiguousSequenceNode, public RtEvent {
     SequenceNode *disambiguate(Context e) override;
 
     uint_fast32_t getPausePulses() override { return 0; };
-    void setNext(RtEvent * n) override { next = n; };
+    void setNext(RtEvent *n) override { next = n; };
     RtEvent *getNext() override { return next; };
     struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t key) override;
 
@@ -435,6 +439,10 @@ SequenceNode *doOperation(string opstr, LhsT *lhs, RhsT *rhs) {
   }
 };
 
+SequenceNode *makeOperation(string ops, SequenceNode *lhs, SequenceNode *rhs) {
+  return doOperation(ops, lhs, rhs);
+};
+
 template<typename LhsT, typename RhsT>
 Operation<LhsT, RhsT>::Operation(string o, LhsT *l, RhsT *r) {
   lhs = l;
@@ -466,12 +474,12 @@ string Operation<LhsT, RhsT>::toString() {
 
 template<typename LhsT, typename RhsT>
 SequenceNode *Operation<LhsT, RhsT>::disambiguate(Context extraContext) {
-  SequenceNode *l = lhs->disambiguate(extraContext);
-  SequenceNode *r = rhs->disambiguate(extraContext);
+  SequenceNode * l = lhs->disambiguate(extraContext);
+  SequenceNode * r = rhs->disambiguate(extraContext);
   bool ambiguous = l->isAmbiguous() | r->isAmbiguous();
 
   if (ambiguous) {
-    return this;
+    return makeOperation(op, l, r);
   } else {
     return doOperationLhs(op, l, r);
   }

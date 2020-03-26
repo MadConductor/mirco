@@ -35,6 +35,10 @@ SequenceNode *SequenceNode::operator+(RtResource *o) {
   return doOperationRhs("+", this, o);
 };
 
+SequenceNode *SequenceNode::operator+(SequenceNode *o) {
+  return doOperationLhs("+", this, o);
+};
+
 // -
 
 SequenceNode *SequenceNode::operator-(Note *o) {
@@ -61,6 +65,9 @@ SequenceNode *SequenceNode::operator-(RtResource *o) {
   return doOperationRhs("-", this, o);
 };
 
+SequenceNode *SequenceNode::operator-(SequenceNode *o) {
+  return doOperationLhs("-", this, o);
+};
 
 // --- SequenceNode
 
@@ -352,7 +359,7 @@ Tone::Tone(string s) {
   }
 }
 
-Tone::Tone(uint_fast32_t k) : key(k) {}
+Tone::Tone(uint_fast32_t k) : key(k) {};
 
 // - Methods
 
@@ -372,7 +379,7 @@ string Tone::toString() {
   }
 
   return res;
-}
+};
 
 uint_fast32_t Tone::getKey() const {
   return key;
@@ -773,6 +780,20 @@ SequenceNode *Sequence::operator-(SequenceNode *o) {
 /*
     RtResource (tbd)
 */
+
+// - Constructors
+
+RtResource::RtResource(string i) : id(i) {};
+
+// - Methods 
+
+SequenceNode *RtResource::disambiguate(Context extraContext) {
+  if (extraContext.count(id) > 0) {
+    return extraContext[id];
+  } else {
+    return this;
+  }
+}
 
 // - Operators
 

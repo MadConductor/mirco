@@ -78,7 +78,7 @@ void yyparse();
 extern FILE *yyin;
 
 extern unordered_map<int, RtEvent *> eventMap;
-unordered_map<int, RtEvent *> playMap;
+unordered_map<uint_fast32_t, RtEvent *> playMap;
 unordered_map<int, int> nextPulseMap;
 unordered_map<int, vector<RtNoteOnEvent *>*> openNotes;
 mutex playMutex;
@@ -310,21 +310,18 @@ void outputLoop() {
   RtMidiOut *midiout = openMidiOut();
   // stores how many internal clock pulses have passed
   uint_fast32_t totalPulses = 0;
-  // TODO: add realtime context (trigger note eg.)
-  Context *rtContext = new Context({});
   float bpm = estimateBpm();
   // local copy of the playmap (concurrency)
-  unordered_map<int, RtEvent *> playMapCopy(playMap);
+  unordered_map<uint_fast32_t, RtEvent *> playMapCopy(playMap);
 
   while (true) {
     if (totalPulses % (INTERNAL_PPQN*4) == 0) {
-    debug("Bar completed in output thread %f \n", bpm);
       // reestimate bpm every bar (lo-pass bitcrusher :P)
       bpm = estimateBpm();
     }
     if (true) { // just a scope for the lock_guard
       lock_guard<mutex> guard(playMutex);
-      playMapCopy = unordered_map<int, RtEvent *>(playMap);
+      playMapCopy = unordered_map<uint_fast32_t, RtEvent *>(playMap);
     }
 
     // calculate when the next internal clock
@@ -335,9 +332,12 @@ void outputLoop() {
     // iterate over playMap
     auto it = playMapCopy.begin();
     while (it != playMapCopy.end()) {
-      int key = it->first;
+      uint_fast32_t key = it->first;
       RtEvent *event = it->second;
+      Context rtContext;
 
+      // update realtime context
+      rtContext["$trigger"] = new Tone(key);
       // next clock pulse for current key
       int nextPulse;
       try {
@@ -348,7 +348,7 @@ void outputLoop() {
 
       // run event if it is scheduled
       if (nextPulse <= totalPulses) {
-        runEvent(event, midiout, rtContext, key, totalPulses);
+        runEvent(event, midiout, &rtContext, key, totalPulses);
       }
       it++;
     }
