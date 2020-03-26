@@ -5,10 +5,10 @@ DEBUG_FLAGS=-ggdb3 -O0 -DDEBUG
 FILES=src/lang.cpp src/rtseq.cpp src/param.cpp build/parser.cpp build/lexer.cpp src/main.cpp
 OBJECTS=$(subst src/,build/,$(FILES:.cpp=.o))
 
+default: mirco
+
 release: DEBUG_FLAGS =
 release: mirco
-
-default: mirco
 
 clean:
 	rm -r build
@@ -28,4 +28,4 @@ build/parser.cpp: src/parser.ypp
 build/lexer.cpp: src/lexer.l
 	flex -o $@ $^
 
-.PHONY: default
+.PHONY: default release

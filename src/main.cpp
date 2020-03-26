@@ -88,7 +88,7 @@ auto lastPulse = now;
 deque<chrono::nanoseconds> deltas;
 uint_fast32_t numPulses = 0;
 
-//SECTION function definitions --------------------
+//SECTION function definitions ---s-----------------
 
 /*
   Averages the last bar of clock message deltas
@@ -124,7 +124,7 @@ void handleClockPulse(vector<unsigned char> *message) {
     deltas.pop_front();
   }
   if (numPulses % (GLOBAL_SETTINGS.INPUT_PPQN.val * 4) == 0) {
-    printf("Estimated BPM: %f\n", estimateBpm());
+    printf("\rEstimated BPM: %f", estimateBpm());
   }
 
   lastPulse = now;
@@ -227,7 +227,7 @@ RtMidiIn *openMidiIn() {
   midiin->ignoreTypes(false, false, false);
 
   if(GLOBAL_SETTINGS.INPUT_PORT.changed){
-    debug("Opening midi input port: %d\n", GLOBAL_SETTINGS.INPUT_PORT.val);
+    debug("Opening midi input port: %lu\n", GLOBAL_SETTINGS.INPUT_PORT.val);
     while(inPorts <= GLOBAL_SETTINGS.INPUT_PORT.val){
       inPorts = midiin->getPortCount();
       //if port is specified but not there, wait until port is available
@@ -258,8 +258,7 @@ RtMidiOut *openMidiOut() {
   unsigned int outPorts = midiout->getPortCount();
 
   if (GLOBAL_SETTINGS.OUTPUT_PORT.changed) {
-    debug("Opening midi output port: %d\n", GLOBAL_SETTINGS.OUTPUT_PORT.val);
-
+    debug("Opening midi output port: %lu\n", GLOBAL_SETTINGS.OUTPUT_PORT.val);
     while (outPorts <= GLOBAL_SETTINGS.OUTPUT_PORT.val) {
       outPorts = midiout->getPortCount();
       // if port is specified but not there, wait until port is available
@@ -285,7 +284,7 @@ RtMidiOut *openMidiOut() {
   Erases event from playMap if it has no successor. 
 */
 RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, uint_fast32_t key, uint_fast32_t totalPulses) {
-  debug("Executing RtEvent at %d pulses\n", totalPulses);
+  debug("Executing RtEvent at %lu pulses\n", totalPulses);
   RtEventResult res = event->run(midiout, *rtContext, key);
   bool end = res.next == nullptr;
 
@@ -373,7 +372,7 @@ int main(int argc, char* argv[]) {
 
   FILE *file = fopen(filename, "r");
   if (!file) {
-    fprintf(stderr,"Cannot open: %s\n", filename);
+    fprintf(stderr, "Cannot open: %s\n", filename);
     return -1;
   }
   yyin = file;

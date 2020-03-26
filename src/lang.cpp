@@ -7,6 +7,10 @@ using namespace std;
     SequenceNode
 */
 
+// - Operators
+
+// +
+
 SequenceNode *SequenceNode::operator+(Note *o) {
   return doOperationRhs("+", this, o);
 };
@@ -31,12 +35,40 @@ SequenceNode *SequenceNode::operator+(RtResource *o) {
   return doOperationRhs("+", this, o);
 };
 
+// -
 
-// --- SequenceNode 
+SequenceNode *SequenceNode::operator-(Note *o) {
+  return doOperationRhs("-", this, o);
+};
+
+SequenceNode *SequenceNode::operator-(Tone *o) {
+  return doOperationRhs("-", this, o);
+};
+
+SequenceNode *SequenceNode::operator-(Sequence *o) {
+  return doOperationRhs("-", this, o);
+};
+
+SequenceNode *SequenceNode::operator-(Chord *o) {
+  return doOperationRhs("-", this, o);
+};
+
+SequenceNode *SequenceNode::operator-(Identifier *o) {
+  return doOperationRhs("-", this, o);
+};
+
+SequenceNode *SequenceNode::operator-(RtResource *o) {
+  return doOperationRhs("-", this, o);
+};
+
+
+// --- SequenceNode
 
 /*
     SequenceParentNode
 */
+
+// - Methods
 
 string SequenceParentNode::toString() {
   vector<SequenceNode *> children = getChildren();
@@ -82,6 +114,8 @@ bool SequenceParentNode::isAmbiguous() {
     Note
 */
 
+// - Fields
+
 map<string, int> Note::noteToValueMap = {
   {"C", 0},
   {"D", 2},
@@ -107,6 +141,8 @@ map<int, string> Note::valueToNoteMap = {
   {10, "A#"},
   {11, "B"},
 };
+
+// - Constructors 
 
 Note::Note(string s) {
   int noteVal = noteToValueMap[s.substr(0, 1)];
@@ -156,6 +192,8 @@ Note::Note(string s) {
 Note::Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d, uint_fast32_t du) 
   : key(k), velocity(v), denominator(d), dutycycle(du) {
 }
+
+// - Methods
 
 string Note::toString() {
   int noteVal = key % 12;
@@ -207,7 +245,9 @@ RtEvent *Note::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
   return (RtEvent *)on;
 };
 
-// Operators
+// - Operators
+
+// +
 
 SequenceNode *Note::operator+(Note *o) {
   return new Note(
@@ -247,11 +287,55 @@ SequenceNode *Note::operator+(SequenceNode *o) {
   return doOperationLhs("+", this, o);
 };
 
+// -
+
+SequenceNode *Note::operator-(Note *o) {
+  return new Note(
+    getKey() - o->getKey(),
+    std::max(getVelocity(), o->getVelocity()),
+    denominator,
+    dutycycle
+  );
+};
+
+SequenceNode *Note::operator-(Tone *o) {
+  return new Note(
+    getKey() - o->getKey(),
+    getVelocity(),
+    denominator,
+    dutycycle
+  );
+};
+
+SequenceNode *Note::operator-(Sequence *o) {  
+  yyerror("Cannot subtract sequence from Note.");
+  return nullptr;
+};
+
+SequenceNode *Note::operator-(Chord *o) {  
+  yyerror("Cannot subtract chord from Note.");
+  return nullptr;
+};
+
+SequenceNode *Note::operator-(Identifier *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Note::operator-(RtResource *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Note::operator-(SequenceNode *o) {
+  return doOperationLhs("-", this, o);
+};
+
 // --- Note 
 
 /*
     Tone
 */
+
+// - Constructors
 
 Tone::Tone(string s) {
   key = 0;
@@ -269,6 +353,8 @@ Tone::Tone(string s) {
 }
 
 Tone::Tone(uint_fast32_t k) : key(k) {}
+
+// - Methods
 
 string Tone::toString() {
   if (key == 0) return "0s";
@@ -297,7 +383,9 @@ void Tone::setKey(uint_fast32_t k) {
   key = k;
 };
 
-// Operators
+// - Operators
+
+// +
 
 SequenceNode *Tone::operator+(Note *o) {
   return new Note(
@@ -332,6 +420,45 @@ SequenceNode *Tone::operator+(RtResource *o) {
 
 SequenceNode *Tone::operator+(SequenceNode *o) {
   return doOperationLhs("+", this, o);
+};
+
+// -
+
+SequenceNode *Tone::operator-(Note *o) {
+  return new Note(
+    getKey() - o->getKey(),
+    o->getVelocity(),
+    o->denominator,
+    o->dutycycle
+  );
+};
+
+SequenceNode *Tone::operator-(Tone *o) {
+  return new Tone(
+    getKey() - o->getKey()
+  );
+};
+
+SequenceNode *Tone::operator-(Sequence *o) {  
+  yyerror("Cannot subtract sequence from Note.");
+  return nullptr;
+};
+
+SequenceNode *Tone::operator-(Chord *o) {  
+  yyerror("Cannot subtract chord from Note.");
+  return nullptr;
+};
+
+SequenceNode *Tone::operator-(Identifier *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Tone::operator-(RtResource *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Tone::operator-(SequenceNode *o) {
+  return doOperationLhs("-", this, o);
 };
 
 
@@ -399,7 +526,9 @@ string Chord::toString() {
   return res;
 };
 
-// Operators
+// - Operators
+
+// +
 
 SequenceNode *Chord::operator+(Note *o) {
   vector<SequenceNode *> c({});
@@ -429,15 +558,49 @@ SequenceNode *Chord::operator+(SequenceNode *o) {
   return doOperationLhs("+", this, o);
 };
 
+// -
+
+SequenceNode *Chord::operator-(Note *o) {
+  vector<SequenceNode *> c({});
+  for (int i=0; i<children.size(); i++) {
+    c.push_back(*(children[i]) - o);
+  }
+  return new Chord(c, velocity, denominator, dutycycle);
+};
+
+SequenceNode *Chord::operator-(Tone *o) {  
+  vector<SequenceNode *> c({});
+  for (int i=0; i<children.size(); i++) {
+    c.push_back(*(children[i]) - o);
+  }
+  return new Chord(c, velocity, denominator, dutycycle);
+};
+
+SequenceNode *Chord::operator-(Identifier *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Chord::operator-(RtResource *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Chord::operator-(SequenceNode *o) {
+  return doOperationLhs("-", this, o);
+};
+
 // --- Chord 
 
 /*
     Identifier
 */
 
+// - Constructors
+
 Identifier::Identifier(string i)
   : id(i) {
 }
+
+// - Methods
 
 string Identifier::toString() {
   return id;
@@ -455,7 +618,9 @@ SequenceNode *Identifier::disambiguate(Context extraContext) {
   }
 }
 
-// Operators
+// - Operators
+
+// + 
 
 SequenceNode *Identifier::operator+(Note *o) {
   return makeOperation("+", this, o);
@@ -485,12 +650,43 @@ SequenceNode *Identifier::operator+(SequenceNode *o) {
   return makeOperation("+", this, o);
 };
 
+// - 
+
+SequenceNode *Identifier::operator-(Note *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Identifier::operator-(Tone *o) {  
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Identifier::operator-(Sequence *o) {  
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Identifier::operator-(Chord *o) {  
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Identifier::operator-(Identifier *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Identifier::operator-(RtResource *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Identifier::operator-(SequenceNode *o) {
+  return makeOperation("-", this, o);
+};
 
 // --- Identifier 
 
 /*
     Sequence
 */
+
+// - Constructors
 
 Sequence::Sequence(Definition *d, vector<SequenceNode *> *a) {
   if (d->arguments.size() != a->size()) {
@@ -509,7 +705,9 @@ Sequence::Sequence(Definition *d, vector<SequenceNode *> *a) {
 
 Sequence::Sequence(vector<SequenceNode *> c) : children(c) {}
 
-// Operators
+// - Operators
+
+// + 
 
 SequenceNode *Sequence::operator+(Note *o) {
   vector<SequenceNode *> c({});
@@ -539,6 +737,36 @@ SequenceNode *Sequence::operator+(SequenceNode *o) {
   return doOperationLhs("+", this, o);
 };
 
+// -
+
+SequenceNode *Sequence::operator-(Note *o) {
+  vector<SequenceNode *> c({});
+  for (int i=0; i<children.size(); i++) {
+    c.push_back(*(children[i]) - o);
+  }
+  return new Sequence(c);
+};
+
+SequenceNode *Sequence::operator-(Tone *o) {  
+  vector<SequenceNode *> c({});
+  for (int i=0; i<children.size(); i++) {
+    c.push_back(*(children[i]) - o);
+  }
+  return new Sequence(c);
+};
+
+SequenceNode *Sequence::operator-(Identifier *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Sequence::operator-(RtResource *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *Sequence::operator-(SequenceNode *o) {
+  return doOperationLhs("-", this, o);
+};
+
 // --- Sequence 
 
 
@@ -546,8 +774,7 @@ SequenceNode *Sequence::operator+(SequenceNode *o) {
     RtResource (tbd)
 */
 
-
-// Operators
+// - Operators
 
 SequenceNode *RtResource::operator+(Note *o) {
   return makeOperation("+", this, o);
@@ -577,6 +804,36 @@ SequenceNode *RtResource::operator+(SequenceNode *o) {
   return makeOperation("+", this, o);
 };
 
+// -
+
+SequenceNode *RtResource::operator-(Note *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *RtResource::operator-(Tone *o) {  
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *RtResource::operator-(Sequence *o) {  
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *RtResource::operator-(Chord *o) {  
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *RtResource::operator-(Identifier *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *RtResource::operator-(RtResource *o) {
+  return makeOperation("-", this, o);
+};
+
+SequenceNode *RtResource::operator-(SequenceNode *o) {
+  return makeOperation("-", this, o);
+};
+
 // --- RtResource 
 
 /*
@@ -593,3 +850,4 @@ Definition::Definition(string i, vector<Identifier *> *a, vector<SequenceNode *>
 }
 
 // --- Definition 
+

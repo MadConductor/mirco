@@ -36,6 +36,13 @@ class SequenceNode {
     SequenceNode *operator+(Chord *o);
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
+
+    SequenceNode *operator-(Note *o);
+    SequenceNode *operator-(Tone *o);
+    SequenceNode *operator-(Sequence *o);
+    SequenceNode *operator-(Chord *o);
+    SequenceNode *operator-(Identifier *o);
+    SequenceNode *operator-(RtResource *o);
 };
 
 class SequenceParentNode: public SequenceNode {
@@ -84,6 +91,14 @@ class Note : public SequenceNode {
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
     SequenceNode *operator+(SequenceNode *o);
+
+    SequenceNode *operator-(Note *o);
+    SequenceNode *operator-(Tone *o);
+    SequenceNode *operator-(Sequence *o);
+    SequenceNode *operator-(Chord *o);
+    SequenceNode *operator-(Identifier *o);
+    SequenceNode *operator-(RtResource *o);
+    SequenceNode *operator-(SequenceNode *o);
 };
 
 /*
@@ -111,6 +126,15 @@ class Tone : public Note { // kind of a bad name ToneLiteral?
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
     SequenceNode *operator+(SequenceNode *o);
+    
+    SequenceNode *operator-(Note *o);
+    SequenceNode *operator-(Tone *o);
+    SequenceNode *operator-(Sequence *o);
+    SequenceNode *operator-(Chord *o);
+    SequenceNode *operator-(Identifier *o);
+    SequenceNode *operator-(RtResource *o);
+    SequenceNode *operator-(SequenceNode *o);
+    
 };
 
 /*
@@ -139,6 +163,12 @@ class Chord : public SequenceParentNode {
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
     SequenceNode *operator+(SequenceNode *o);
+
+    SequenceNode *operator-(Note *o);
+    SequenceNode *operator-(Tone *o);
+    SequenceNode *operator-(Identifier *o);
+    SequenceNode *operator-(RtResource *o);
+    SequenceNode *operator-(SequenceNode *o);
 };
 
 /*
@@ -161,6 +191,12 @@ class Sequence : public SequenceParentNode {
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
     SequenceNode *operator+(SequenceNode *o);
+
+    SequenceNode *operator-(Note *o);
+    SequenceNode *operator-(Tone *o);
+    SequenceNode *operator-(Identifier *o);
+    SequenceNode *operator-(RtResource *o);
+    SequenceNode *operator-(SequenceNode *o);
 };
 
 class AmbiguousSequenceNode : public SequenceNode {
@@ -194,6 +230,14 @@ class Identifier : public AmbiguousSequenceNode {
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
     SequenceNode *operator+(SequenceNode *o);
+
+    SequenceNode *operator-(Note *o);
+    SequenceNode *operator-(Tone *o);
+    SequenceNode *operator-(Sequence *o);
+    SequenceNode *operator-(Chord *o);
+    SequenceNode *operator-(Identifier *o);
+    SequenceNode *operator-(RtResource *o);
+    SequenceNode *operator-(SequenceNode *o);
 };
 
 /*
@@ -214,6 +258,14 @@ class RtResource : public Identifier {
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
     SequenceNode *operator+(SequenceNode *o);
+
+    SequenceNode *operator-(Note *o);
+    SequenceNode *operator-(Tone *o);
+    SequenceNode *operator-(Sequence *o);
+    SequenceNode *operator-(Chord *o);
+    SequenceNode *operator-(Identifier *o);
+    SequenceNode *operator-(RtResource *o);
+    SequenceNode *operator-(SequenceNode *o);
 };
 
 /*
@@ -253,6 +305,14 @@ class Operation : public AmbiguousSequenceNode, public RtEvent {
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
     SequenceNode *operator+(SequenceNode *o);
+
+    SequenceNode *operator-(Note *o);
+    SequenceNode *operator-(Tone *o);
+    SequenceNode *operator-(Sequence *o);
+    SequenceNode *operator-(Chord *o);
+    SequenceNode *operator-(Identifier *o);
+    SequenceNode *operator-(RtResource *o);
+    SequenceNode *operator-(SequenceNode *o);
 };
 
 /*
@@ -361,13 +421,13 @@ SequenceNode *doOperation(string opstr, LhsT *lhs, RhsT *rhs) {
       return (*lhs) + rhs;
       break;
     case MINUS:
-      return (*lhs) + rhs;
+      return (*lhs) - rhs;
       break;
     case DIVIDED:
-      return (*lhs) + rhs;
+      return (*lhs) + rhs; // TODO: implement division
       break;
     case TIMES:
-      return (*lhs) + rhs;
+      return (*lhs) + rhs; // TODO: implement multiplication
       break;
     default:
       throw logic_error("Unknown Operator");
@@ -417,6 +477,8 @@ SequenceNode *Operation<LhsT, RhsT>::disambiguate(Context extraContext) {
   }
 };
 
+// +
+
 template<typename LhsT, typename RhsT>
 SequenceNode *Operation<LhsT, RhsT>::operator+(Note *o) {
   return makeOperation("+", this, o);
@@ -450,6 +512,43 @@ SequenceNode *Operation<LhsT, RhsT>::operator+(RtResource *o) {
 template<typename LhsT, typename RhsT>
 SequenceNode *Operation<LhsT, RhsT>::operator+(SequenceNode *o) {
   return makeOperation("+", this, o);
+};
+
+// -
+
+template<typename LhsT, typename RhsT>
+SequenceNode *Operation<LhsT, RhsT>::operator-(Note *o) {
+  return makeOperation("-", this, o);
+};
+
+template<typename LhsT, typename RhsT>
+SequenceNode *Operation<LhsT, RhsT>::operator-(Tone *o) {  
+  return makeOperation("-", this, o);
+};
+
+template<typename LhsT, typename RhsT>
+SequenceNode *Operation<LhsT, RhsT>::operator-(Sequence *o) { 
+  return makeOperation("-", this, o);
+};
+
+template<typename LhsT, typename RhsT>
+SequenceNode *Operation<LhsT, RhsT>::operator-(Chord *o) {  
+  return makeOperation("-", this, o);
+};
+
+template<typename LhsT, typename RhsT>
+SequenceNode *Operation<LhsT, RhsT>::operator-(Identifier *o) {  
+  return makeOperation("-", this, o);
+};
+
+template<typename LhsT, typename RhsT>
+SequenceNode *Operation<LhsT, RhsT>::operator-(RtResource *o) {  
+  return makeOperation("-", this, o);
+};
+
+template<typename LhsT, typename RhsT>
+SequenceNode *Operation<LhsT, RhsT>::operator-(SequenceNode *o) {
+  return makeOperation("-", this, o);
 };
 
 // --- Operation

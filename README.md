@@ -60,6 +60,8 @@ Chords are simultaneously played notes.
 (C3, D#3, G3):50<8|2>
 ```
 
+Velocity and note length of the individual notes 
+will be ignored and overriden by the chord's parameters.
 
 ### Sequences:
 
