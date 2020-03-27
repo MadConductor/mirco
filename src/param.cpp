@@ -7,7 +7,6 @@
 #include "param.hpp"
 #include "error.hpp"
 
-#define DEFAULT_EXTERNAL_PPQN 24
 
 static const struct option LONG_OPTIONS[] = {
     {"input", required_argument, 0, 'i'},
@@ -16,20 +15,6 @@ static const struct option LONG_OPTIONS[] = {
     {"bpm", required_argument, 0, 'b'},
     {"api", required_argument, 0, 'a'},
     0};
-
-void init_settings(struct global_settings &settings){
-  settings.INPUT_PORT =             {0,                        false};
-  settings.OUTPUT_PORT =            {0,                        false};
-
-  settings.FOLLOW_INPUT_CLOCK =     {false,                    false};
-  settings.INPUT_PPQN =             {DEFAULT_EXTERNAL_PPQN,    false};
-
-  settings.DEFAULT_BPM =            {120,                      false};
-
-  settings.FOLLOW_INPUT_STARTSTOP = {false,                    false};
-
-  settings.BACKEND =                {RtMidi::Api::UNSPECIFIED, false};
-}
 
 void unpack_cmdline(struct global_settings *settings, char *&filename, int argc, char *argv[]){
     while (1)
@@ -45,42 +30,42 @@ void unpack_cmdline(struct global_settings *settings, char *&filename, int argc,
               switch(optarg[0]){
                 case 'a':
                 case 'A':
-                  settings->BACKEND = {RtMidi::Api::LINUX_ALSA, true};
+                  settings->BACKEND = RtMidi::Api::LINUX_ALSA;
                   break;
                 case 'j':
                 case 'J':
-                  settings->BACKEND = {RtMidi::Api::UNIX_JACK, true};
+                  settings->BACKEND = RtMidi::Api::UNIX_JACK;
                   break;
                 case 'm':
                 case 'M':
-                  settings->BACKEND = {RtMidi::Api::MACOSX_CORE, true};
+                  settings->BACKEND = RtMidi::Api::MACOSX_CORE;
                   break;
                 default:
-                  settings->BACKEND = {RtMidi::Api::UNSPECIFIED, true};
+                  settings->BACKEND = RtMidi::Api::UNSPECIFIED;
                   break;
               }
               break;
             case 'b':
-              settings->DEFAULT_BPM = {(uint_fast16_t)atol(optarg), true};
+              settings->DEFAULT_BPM = (uint_fast16_t)atol(optarg);
               //TODO error checking
               break;
             case 'c':
-              settings->FOLLOW_INPUT_CLOCK = {true, true};
-              settings->INPUT_PPQN = {(uint_fast16_t)atol(optarg), true};
+              settings->FOLLOW_INPUT_CLOCK = true;
+              settings->INPUT_PPQN = (uint_fast16_t)atol(optarg);
               //TODO error checking
               break;
             case 'i':
-              settings->INPUT_PORT = {(uint_fast16_t)atol(optarg), true};
+              settings->INPUT_PORT = (uint_fast16_t)atol(optarg);
               break;
             case 'o':
-              settings->OUTPUT_PORT = {(uint_fast16_t)atol(optarg), true};
+              settings->OUTPUT_PORT = (uint_fast16_t)atol(optarg);
               break;
             case 0:
             case ':':
               switch(optopt){
                 case 'c':
-                  settings->FOLLOW_INPUT_CLOCK = {true, true};
-                  settings->INPUT_PPQN = {DEFAULT_EXTERNAL_PPQN, true};
+                  settings->FOLLOW_INPUT_CLOCK = true;
+                  settings->INPUT_PPQN = DEFAULT_EXTERNAL_PPQN;
                   break;
                 default:
                   //TODO error handling
