@@ -8,13 +8,6 @@
 #include "error.hpp"
 
 
-static const struct option LONG_OPTIONS[] = {
-    {"input", required_argument, 0, 'i'},
-    {"output", required_argument, 0, 'o'},
-    {"follow-clk", optional_argument, 0, 'c'},
-    {"bpm", required_argument, 0, 'b'},
-    {"api", required_argument, 0, 'a'},
-    0};
 
 void unpack_cmdline(struct global_settings *settings, char *&filename, int argc, char *argv[]){
     while (1)
@@ -22,7 +15,7 @@ void unpack_cmdline(struct global_settings *settings, char *&filename, int argc,
         int index = 0;
         int result = getopt_long(argc, argv,
             "c::b:i:o:a:",
-            LONG_OPTIONS, &index);
+            settings->LONG_OPTS, &index);
         if (result == -1) break; /* end of list */
         switch (result)
           {
@@ -65,7 +58,7 @@ void unpack_cmdline(struct global_settings *settings, char *&filename, int argc,
               switch(optopt){
                 case 'c':
                   settings->FOLLOW_INPUT_CLOCK = true;
-                  settings->INPUT_PPQN = DEFAULT_EXTERNAL_PPQN;
+                  //settings->INPUT_PPQN = 24;//done in constructor
                   break;
                 default:
                   //TODO error handling
@@ -84,18 +77,6 @@ void unpack_cmdline(struct global_settings *settings, char *&filename, int argc,
       debug("other parameter: <%s>\n", argv[optind++]);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 void string_to_param(struct global_settings *settings, const std::string *str){}
