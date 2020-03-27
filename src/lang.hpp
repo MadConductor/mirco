@@ -75,6 +75,7 @@ class Note : public SequenceNode {
 
     Note() = default;
     Note(string s);
+    Note(Note *n, uint_fast32_t v, uint_fast32_t d = 1, uint_fast32_t du = 1);
     Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d = 1, uint_fast32_t du = 1);
 
     virtual string toString() override;
@@ -192,12 +193,14 @@ class Sequence : public SequenceParentNode {
     SequenceNode *operator+(Tone *o);
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
+    SequenceNode *operator+(Sequence *o);
     SequenceNode *operator+(SequenceNode *o);
 
     SequenceNode *operator-(Note *o);
     SequenceNode *operator-(Tone *o);
     SequenceNode *operator-(Identifier *o);
     SequenceNode *operator-(RtResource *o);
+    SequenceNode *operator-(Sequence *o);
     SequenceNode *operator-(SequenceNode *o);
 };
 
@@ -218,7 +221,7 @@ class Identifier : public AmbiguousSequenceNode {
     Identifier() = default;
     Identifier(string i);
 
-    string toString() override;
+    virtual string toString() override;
     virtual SequenceNode::Type getType() override { return SequenceNode::IDENTIFIER; };
 
     virtual RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
@@ -252,6 +255,7 @@ class RtResource : public Identifier {
     RtResource() = default;
     RtResource(string i);
 
+    string toString() override;
     SequenceNode::Type getType() override { return SequenceNode::RTRESOURCE; };
     SequenceNode *disambiguate(Context e) override;
 
@@ -439,9 +443,6 @@ SequenceNode *doOperation(string opstr, LhsT *lhs, RhsT *rhs) {
   }
 };
 
-SequenceNode *makeOperation(string ops, SequenceNode *lhs, SequenceNode *rhs) {
-  return doOperation(ops, lhs, rhs);
-};
 
 template<typename LhsT, typename RhsT>
 Operation<LhsT, RhsT>::Operation(string o, LhsT *l, RhsT *r) {

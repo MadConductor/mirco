@@ -33,7 +33,6 @@ RtNoteOnEvent::RtNoteOnEvent(unsigned char channel,
 struct RtEventResult RtNoteOnEvent::run(RtMidiOut *m, Context rtContext, uint_fast32_t triggerKey) {
   openNotes[triggerKey]->push_back(this);
   m->sendMessage(&message);
-  printf("Sending Note On Message: %d, %d\n", message[1], message[2]);
   return (RtEventResult){.next = getNext(), .pausepulses = getPausePulses()};
 }
 
@@ -77,7 +76,6 @@ struct RtEventResult RtNoteOffEvent::run(RtMidiOut *m, Context rtContext, uint_f
   for(int i=0; i<(on->size()); i++) {
     if (on->at(i)->isKey(this->getKey())) on->erase(on->begin() + i);
   }
-  printf("Sending Note Off Message: %d, %d\n", message[1], message[2]);
   return (RtEventResult){.next = getNext(), .pausepulses = getPausePulses()};
 }
 

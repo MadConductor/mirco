@@ -146,11 +146,13 @@ void handleOnMsg(vector<unsigned char> *message) {
       event = eventMap.at(-2); // default mapping
     } catch (const std::out_of_range& oor) {
       return;
+      
     }
   }
+  vector<RtNoteOnEvent *> *vec = new vector<RtNoteOnEvent *>({});
   lock_guard<mutex> guard(playMutex);
   playMap[key] = event;
-  openNotes[key] = new vector<RtNoteOnEvent *>({});
+  openNotes[key] = vec;
 }
 
 /*
@@ -284,7 +286,6 @@ RtMidiOut *openMidiOut() {
   Erases event from playMap if it has no successor. 
 */
 RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, uint_fast32_t key, uint_fast32_t totalPulses) {
-  debug("Executing RtEvent at %lu pulses\n", totalPulses);
   RtEventResult res = event->run(midiout, *rtContext, key);
   bool end = res.next == nullptr;
 
@@ -324,6 +325,8 @@ void outputLoop() {
       playMapCopy = unordered_map<uint_fast32_t, RtEvent *>(playMap);
     }
 
+    Context rtContext;
+
     // calculate when the next internal clock
     // pulse will happen in nanoseconds
     uint_fast32_t pulseDelay = (NS_MIN / (bpm * INTERNAL_PPQN));
@@ -334,7 +337,6 @@ void outputLoop() {
     while (it != playMapCopy.end()) {
       uint_fast32_t key = it->first;
       RtEvent *event = it->second;
-      Context rtContext;
 
       // update realtime context
       rtContext["$trigger"] = new Tone(key);
@@ -357,7 +359,7 @@ void outputLoop() {
     // sleep thread until next internal pulse
     // TODO: support high bpm (will only work
     // on real time kernels as of now)
-    this_thread::sleep_until(nextPulseNs);
+    while (clk::now() < nextPulseNs) {}
   }
 }
 

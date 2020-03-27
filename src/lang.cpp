@@ -79,12 +79,12 @@ SequenceNode *SequenceNode::operator-(SequenceNode *o) {
 
 string SequenceParentNode::toString() {
   vector<SequenceNode *> children = getChildren();
-  string res = "";
+  string res = "{ ";
   for(int i=0; i<children.size(); i++) {
     res += children[i]->toString();
     res += " ";
   }
-  return res;
+  return res + "}";
 }
 
 RtEvent *SequenceParentNode::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
@@ -167,34 +167,12 @@ Note::Note(string s) {
   int octave = 1 + stoi(s.substr(i, 1));
   int octaveOffset = 12 * octave;
   noteVal += octaveOffset;
-
   key = noteVal;
-  velocity = 127;
-
-  denominator = 1; // default denominator
-  dutycycle = 1; // default dutycycle
-  int velIdx = s.find(":");
-  int denIdx = s.find("<");
-  int denEndIdx = s.find(">");
-
-  if (velIdx > -1) {
-    velocity = stoi(s.substr(velIdx + 1, denIdx));
-    if (velocity > 127) {
-      yyerror("Note velocity may not exceed 127.");
-    }
-    if (velocity == 0) {
-      velocity = 1; // velocity of 0 turns notes off again
-    }
-  }
-
-  if (denIdx > -1) {
-    int dutyIdx = s.find("|");
-    denominator = stoi(s.substr(denIdx + 1, max(denEndIdx, dutyIdx) - 1));
-    if (dutyIdx > -1) {
-      dutycycle = stoi(s.substr(dutyIdx + 1, denEndIdx - 1));
-    }
-  }
 };
+
+Note::Note(Note *n, uint_fast32_t v, uint_fast32_t d, uint_fast32_t du) 
+  : key(n->getKey()), velocity(v), denominator(d), dutycycle(du) {
+}
 
 Note::Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d, uint_fast32_t du) 
   : key(k), velocity(v), denominator(d), dutycycle(du) {
@@ -740,6 +718,11 @@ SequenceNode *Sequence::operator+(RtResource *o) {
   return makeOperation("+", this, o);
 };
 
+SequenceNode *Sequence::operator+(Sequence *o) {
+  yyerror("Cannot operate on two sequences.");
+  return nullptr;
+};
+
 SequenceNode *Sequence::operator+(SequenceNode *o) {
   return doOperationLhs("+", this, o);
 };
@@ -770,6 +753,11 @@ SequenceNode *Sequence::operator-(RtResource *o) {
   return makeOperation("-", this, o);
 };
 
+SequenceNode *Sequence::operator-(Sequence *o) {
+  yyerror("Cannot operate on two sequences.");
+  return nullptr;
+};
+
 SequenceNode *Sequence::operator-(SequenceNode *o) {
   return doOperationLhs("-", this, o);
 };
@@ -786,6 +774,10 @@ SequenceNode *Sequence::operator-(SequenceNode *o) {
 RtResource::RtResource(string i) : id(i) {};
 
 // - Methods 
+
+string RtResource::toString() {
+  return id;
+}
 
 SequenceNode *RtResource::disambiguate(Context extraContext) {
   if (extraContext.count(id) > 0) {

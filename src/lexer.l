@@ -13,7 +13,7 @@ INT [1-9]{DIGIT}*
 IDENTIFIER [a-zA-Z][a-zA-Z0-9]* 
 VELOCITY \:{INT}
 DENOMINATOR <{INT}(\|{INT})?>
-NOTE [ABCDEFGHabcdefgh](#|b)?[0-9]({VELOCITY})?({DENOMINATOR})?
+NOTE [ABCDEFGHabcdefgh](#|b)?[0-9]
 OPERATOR [\+\-\*\/\=]
 SEMITONE {INT}[s]
 OCTAVE {INT}[o]
@@ -34,8 +34,7 @@ auto            { return AUTO; }
 }
 
 {NOTE}    {
-  Note *note = new Note(strdup(yytext));
-  yylval.noteval = note;
+  yylval.sval = strdup(yytext);
   return NOTE;
 }
 
