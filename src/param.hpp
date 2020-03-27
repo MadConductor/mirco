@@ -30,22 +30,27 @@ public:
 
 using puft = param<uint_fast16_t>;
 using pbol = param<bool>;
-using rtma = RtMidi::Api;
-using papi = param<rtma>;
+using papi = param<RtMidi::Api>;
+
+RtMidi::Api rmau = RtMidi::Api::UNSPECIFIED;
+
+#define rarg required_argument
+#define oarg required_argumemt
+#define narg no_argument
 
 struct global_settings {
 public:
-  puft INPUT_PORT         = puft(0,                 {"input",      required_argument, 0, 'i'});
-  puft OUTPUT_PORT        = puft(0,                 {"output",     required_argument, 0, 'o'});
-  pbol FOLLOW_INPUT_CLOCK = pbol(false,             {"follow-clk", optional_argument, 0, 'c'});
-  puft INPUT_PPQN         = puft(24,                {"",           no_argument,       0, '?'});
+  puft INPUT_PORT         = puft(0,    {"input",      rarg, 0,'i'});
+  puft OUTPUT_PORT        = puft(0,    {"output",     rarg, 0,'o'});
+  pbol FOLLOW_INPUT_CLOCK = pbol(false,{"follow-clk", oarg, 0,'c'});
+  puft INPUT_PPQN         = puft(24,   {"",           narg, 0,'?'});
 
-  puft DEFAULT_BPM        = puft(120,               {"bpm",        required_argument, 0, 'b'});
+  puft DEFAULT_BPM        = puft(120,  {"bpm",        rarg, 0,'b'});
 
-  papi BACKEND            = papi(rtma::UNSPECIFIED, {"api",        required_argument, 0, 'a'});
+  papi BACKEND            = papi(rmau, {"api",        rarg, 0,'a'});
 
 
-  pbol INPUT_CONTROLS     = pbol(false,             {"",           no_argument,       0, '?'});
+  pbol INPUT_CONTROLS     = pbol(false,{"",           narg, 0,'?'});
 
   const struct option LONG_OPTS[6] = {
                                                 INPUT_PORT.OPT,
