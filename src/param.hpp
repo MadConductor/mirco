@@ -3,10 +3,9 @@
 
 #include <cstdint>
 #include <string>
+#include <getopt.h>
+
 #include "rtmidi/RtMidi.h"
-
-#define DEFAULT_EXTERNAL_PPQN 24
-
 
 template <typename T>
 class param{
@@ -14,10 +13,12 @@ public:
 
   T val;
   bool changed;
+  struct option OPT;
 
-  param(T v){
+  param(T v, option opt){
     changed = false;
     val = v;
+    OPT = opt;
   }
 
   void operator=(T v){
@@ -27,18 +28,32 @@ public:
 
 };
 
+using puft = param<uint_fast16_t>;
+using pbol = param<bool>;
+using papi = param<RtMidi::Api>;
+
 struct global_settings {
-  param<uint_fast16_t> INPUT_PORT = param<uint_fast16_t>(0);
-  param<uint_fast16_t> OUTPUT_PORT = param<uint_fast16_t>(0);
+public:
+  puft INPUT_PORT             = puft(0,                     {"input",      required_argument, 0, 'i'});
+  puft OUTPUT_PORT            = puft(0,                     {"output",     required_argument, 0, 'o'});
+  pbol FOLLOW_INPUT_CLOCK     = pbol(false,                 {"follow-clk", optional_argument, 0, 'c'});
+  puft INPUT_PPQN             = puft(24,                    {"",           no_argument,       0, '?'});
 
-  param<bool> FOLLOW_INPUT_CLOCK = param<bool>(0);
-  param<uint_fast16_t> INPUT_PPQN = param<uint_fast16_t>(DEFAULT_EXTERNAL_PPQN);
+  puft DEFAULT_BPM            = puft(120,                   {"bpm",        required_argument, 0, 'b'});
 
-  param<uint_fast16_t> DEFAULT_BPM = param<uint_fast16_t>(120);
+  papi BACKEND                = papi(RtMidi::Api::UNSPECIFIED, {"api",     required_argument, 0, 'a'});
 
-  param<bool> FOLLOW_INPUT_STARTSTOP = param<bool>(false);
 
-  param<RtMidi::Api> BACKEND = param<RtMidi::Api>(RtMidi::Api::UNSPECIFIED);
+  pbol FOLLOW_INPUT_STARTSTOP = pbol(false,                 {"",           no_argument,       0, '?'});
+
+  const struct option LONG_OPTS[6] = {
+                                                INPUT_PORT.OPT,
+                                                OUTPUT_PORT.OPT,
+                                                FOLLOW_INPUT_CLOCK.OPT,
+                                                DEFAULT_BPM.OPT,
+                                                BACKEND.OPT,
+                                                0
+  };
 };
 
 void unpack_cmdline(struct global_settings *settings, char *&filename, int argc, char * argv[]);
