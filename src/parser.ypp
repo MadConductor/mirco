@@ -5,6 +5,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <utility>
 #include "../src/lang.hpp"
 
 extern int yylineno;
@@ -27,6 +28,7 @@ void yyerror(const char *s) {
   int ival;
   float fval;
   char *sval;
+
   Note *noteval;
   Tone *toneval;
   Identifier *idval;
@@ -35,6 +37,8 @@ void yyerror(const char *s) {
   Sequence *sequenceval;
   RtResource *rtresourceval;
   Chord *chordval;
+
+  pair<uint_fast32_t, uint_fast32_t> *denomval;
   vector<SequenceNode *> *nodelistval;
   vector<Identifier *> *idlistval;
 }
@@ -43,7 +47,7 @@ void yyerror(const char *s) {
 
 %token <ival>  INT
 %token <idval>  IDENTIFIER
-%token <noteval>  NOTE
+%token <sval>  NOTE
 %token <toneval>  TONE_LITERAL
 %token <rtresourceval>  RTRESOURCE
 %token <sval>  OPERATOR
@@ -52,12 +56,14 @@ void yyerror(const char *s) {
 %token <fval>  FLOAT
 %token <sval>  STRING
 
+%type  <noteval> note
 %type  <nodeval> sequence_node operation
 %type  <sequenceval> sequence
 %type  <chordval> chord
 %type  <nodelistval> node_list
 %type  <idlistval> id_list 
-%type  <ival> map_target
+%type  <ival> map_target velocity
+%type  <denomval> denominator
 
 %left '+' '-'
 %left '*' '/'
@@ -77,7 +83,7 @@ operation:
   | IDENTIFIER OPERATOR RTRESOURCE {
     $$ = doOperation($2, $1, $3);
   }
-  | IDENTIFIER OPERATOR NOTE {
+  | IDENTIFIER OPERATOR note {
     $$ = doOperation($2, $1, $3);
   }
   | IDENTIFIER OPERATOR TONE_LITERAL {
@@ -99,7 +105,7 @@ operation:
   | RTRESOURCE OPERATOR RTRESOURCE {
     $$ = doOperation($2, $1, $3);
   }
-  | RTRESOURCE OPERATOR NOTE {
+  | RTRESOURCE OPERATOR note {
     $$ = doOperation($2, $1, $3);
   }
   | RTRESOURCE OPERATOR TONE_LITERAL {
@@ -115,25 +121,25 @@ operation:
     $$ = doOperation($2, $1, $4);
   }
 
-  | NOTE OPERATOR NOTE {
+  | note OPERATOR note {
     $$ = doOperation($2, $1, $3);
   }
-  | NOTE OPERATOR RTRESOURCE {
+  | note OPERATOR RTRESOURCE {
     $$ = doOperation($2, $1, $3);
   }
-  | NOTE OPERATOR IDENTIFIER {
+  | note OPERATOR IDENTIFIER {
     $$ = doOperation($2, $1, $3);
   }
-  | NOTE OPERATOR TONE_LITERAL {
+  | note OPERATOR TONE_LITERAL {
     $$ = doOperation($2, $1, $3);
   }
-  | NOTE OPERATOR sequence {
+  | note OPERATOR sequence {
     $$ = doOperation($2, $1, $3);
   }
-  | NOTE OPERATOR chord {
+  | note OPERATOR chord {
     $$ = doOperation($2, $1, $3);
   }
-  | NOTE OPERATOR '(' operation ')' {
+  | note OPERATOR '(' operation ')' {
     $$ = doOperation($2, $1, $4);
   }
 
@@ -146,7 +152,7 @@ operation:
   | TONE_LITERAL OPERATOR IDENTIFIER {
     $$ = doOperation($2, $1, $3);
   }
-  | TONE_LITERAL OPERATOR NOTE {
+  | TONE_LITERAL OPERATOR note {
     $$ = doOperation($2, $1, $3);
   }
   | TONE_LITERAL OPERATOR sequence {
@@ -168,7 +174,7 @@ operation:
   | sequence OPERATOR IDENTIFIER {
     $$ = doOperation($2, $1, $3);
   }
-  | sequence OPERATOR NOTE {
+  | sequence OPERATOR note {
     $$ = doOperation($2, $1, $3);
   }
   | sequence OPERATOR TONE_LITERAL {
@@ -190,7 +196,7 @@ operation:
   | chord OPERATOR IDENTIFIER {
     $$ = doOperation($2, $1, $3);
   }
-  | chord OPERATOR NOTE {
+  | chord OPERATOR note {
     $$ = doOperation($2, $1, $3);
   }
   | chord OPERATOR TONE_LITERAL {
@@ -212,7 +218,7 @@ operation:
   | operation OPERATOR IDENTIFIER {
     $$ = doOperation($2, $1, $3);
   }
-  | operation OPERATOR NOTE {
+  | operation OPERATOR note {
     $$ = doOperation($2, $1, $3);
   }
   | operation OPERATOR TONE_LITERAL {
@@ -267,27 +273,52 @@ sequence:
     Sequence *i = new Sequence(d, $3);
     $$ = i;
   }
+  | '{' node_list '}' {
+    $$ = new Sequence(*$2);
+  }
+;
+
+velocity:
+  '|' INT {
+    $$ = $2;
+  }
+;
+
+denominator:
+  ':' INT {
+    $$ = new pair<uint_fast32_t, uint_fast32_t>($2, 1);
+  }
+  | ':' INT ':' INT {
+    $$ = new pair<uint_fast32_t, uint_fast32_t>($2, $4);
+  }
+;
+
+note: 
+  NOTE {
+    $$ = new Note($1);
+  }
+  | note velocity {
+    $$ = new Note($1, $2);
+  }
+  | note denominator {
+    $$ = new Note($1, 127, $2->first, $2->second);
+  }
+  | note velocity denominator {
+    $$ = new Note($1, $2, $3->first, $3->second);
+  }
 ;
 
 chord:
-  '(' node_list ')' ':' INT '<' INT '>' {
-    Chord *c = new Chord(*$2, $5, $7);
+  '(' node_list ')' velocity {
+    Chord *c = new Chord(*$2, $4);
     $$ = c;
   }
-  | '(' node_list ')' ':' INT '<' INT '|' INT '>'{
-    Chord *c = new Chord(*$2, $5, $7, $9);
+  | '(' node_list ')' denominator {
+    Chord *c = new Chord(*$2, 127, $4->first, $4->second);
     $$ = c;
   }
-  | '(' node_list ')' '<' INT '>' {
-    Chord *c = new Chord(*$2, 127, $5);
-    $$ = c;
-  }
-  | '(' node_list ')' '<' INT '|' INT '>'{
-    Chord *c = new Chord(*$2, 127, $5, $7);
-    $$ = c;
-  }
-  | '(' node_list ')' ':' INT {
-    Chord *c = new Chord(*$2, $5);
+  | '(' node_list ')' velocity denominator {
+    Chord *c = new Chord(*$2, $4, $5->first, $5->second);
     $$ = c;
   }
   | '(' node_list ')' {
@@ -303,7 +334,7 @@ sequence_node:
   | RTRESOURCE {
     $$ = (SequenceNode *)$1;
   } 
-  | NOTE {
+  | note {
     $$ = (SequenceNode *)$1;
   }
   | TONE_LITERAL {
@@ -325,7 +356,7 @@ sequence_node:
 
 map_target:
   NOTE {
-    $$ = $1->key;
+    $$ = (new Note($1))->key;
   }
   | AUTO {
     $$ = -1;

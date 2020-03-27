@@ -1,19 +1,24 @@
 
 sequence seq1(A) {
-    C0 + A, F0 + A, C0 + A, D0 + A
+    {
+        F0:16, 
+        G0:8:2,
+        C0:16, 
+        D0:8:2
+    } + A
 }
 
 sequence seq3() {
-    C4:50<16|1>, (C3, D#3), (C3, D#3, G3), C4:50<16>
+    C4:50:16, (C3, D#3), (C3, D#3, G3), C4|50:16
 }
 
-sequence seq4() {
-    (C3, D#3, G3)<1>,       (C3, D#3, G3)<1> + 7s, 
-    (C3, D#3, G3)<1>,       (C3, D#3, G3):50<1> + 7s, 
-    (C3, D#3, G3)<16>,      (C3, D#3, G3)<16> + 7s, 
-    (C3, D#3, G3):50<8|2>,  (C3, D#3, G3):50<8|2> + 7s
-}
+sequence seq4() { $trigger + {
+    (C3, D#3, G3):8:2,       (C3, D#3, G3):8 + 7s, 
+    (C3, D#3, G3):16,       (C3, D#3, G3)|50:16 + 7s, 
+    (C3, D#3, G3):16,       (C3, D#3, G3):16 + 7s, 
+    (C3, D#3, G3)|50:8:2,  (C3, D#3, G3)|50:16:2 + 7s
+}}
 
-default: seq1($trigger)
-auto: seq1(seq3())
+default: seq4()
+auto: seq1(§trigger)
 C4: seq1(C4:50)
