@@ -12,11 +12,63 @@ Install `bison` and `flex`.
 pacman -S bison flex
 `
 
+### Compiling:
+
 Run `make`.
+
+### Running:
 
 Run `./mirco syntax.mirco <args>`.
 
 Edit `syntax.mirco`!
+
+## Command Line Arguments:
+
+## --follow-clk
+
+If set mirco will try to match the speed
+of the incoming midi clock. 
+(Mirco assumes 24 midi clock pulses per quarter note)
+
+## --bpm
+
+Sets beats per minute of the internal output loop. 
+If --follow-clk is specified it will be overridden by 
+the input clock BPM.
+
+Defaults to 120.
+
+## --api
+
+Options: 
+    - `alsa`
+    - `jack`
+    - `macosx_core`
+
+Specifies the midi api to be used by RtMidi.
+Following apis are available to be selected explicitly:
+
+Linux provides ALSA and JACK apis (assuming they are installed).
+Note: JACK seems to introduce alot of latency (500 - 1000ms),
+use ALSA for the best performance.
+
+MacOs allows for the installation of JACK. If JACK is installed
+select either `jack` or `macosx_core`.
+
+On Windows only one api is available, rendering this
+argument unnecessary.
+
+WARNING: Currently only linux apis are tested, 
+since both contributors use linux.
+
+## --input & --output
+
+Specify the input and output indexes for RtMidi.
+If the specified index does not exist mirco will
+wait until it is available.
+For more control we recommend something like
+[Catia](https://kx.studio/Applications:Catia) or
+[Claudia](https://kx.studio/Applications:Claudia) 
 
 ## Syntax
 
