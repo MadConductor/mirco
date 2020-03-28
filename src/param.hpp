@@ -1,3 +1,4 @@
+#pragma once
 #include <cstdint>
 #include <string>
 #include <getopt.h>
@@ -29,10 +30,10 @@ using puft = param<uint_fast16_t>;
 using pbol = param<bool>;
 using papi = param<RtMidi::Api>;
 
-RtMidi::Api rmau = RtMidi::Api::UNSPECIFIED;
+static RtMidi::Api rmau = RtMidi::Api::UNSPECIFIED;
 
 #define rarg required_argument
-#define oarg required_argumemt
+#define oarg required_argument
 #define narg no_argument
 
 struct global_settings {

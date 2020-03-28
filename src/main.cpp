@@ -290,7 +290,6 @@ RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, u
     nextPulseMap[key] = totalPulses + res.pausepulses;
     playMap[key] = res.next;
   } else {
-    debug("Sequence Ended\n");
     lock_guard<mutex> guard(playMutex);
     playMap.erase(key);
     nextPulseMap.erase(key);
@@ -352,7 +351,7 @@ void outputLoop() {
 
     // busy wait until next internal pulse
     // TODO: determine wait method according to kernel features
-    
+
     while (clk::now() < nextPulseNs) {}
     // this_thread::sleep_until(nextPulseNs);
   }
