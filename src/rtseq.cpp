@@ -1,6 +1,7 @@
 #include "rtseq.hpp"
 
 extern unordered_map<int, vector<RtNoteOnEvent *>*> openNotes;
+extern mutex noteTerminationMutex;
 
 void RtEvent::append(RtEvent *next) {
   if(this->getNext() != nullptr) {
@@ -9,6 +10,7 @@ void RtEvent::append(RtEvent *next) {
     this->setNext(next);
   }
 }
+
 
 struct RtEventResult RtNopEvent::run(RtMidiOut *m, Context rtContext, uint_fast32_t triggerKey) {
   return (RtEventResult){.next = getNext(), .pausepulses = getPausePulses()};
@@ -31,7 +33,8 @@ RtNoteOnEvent::RtNoteOnEvent(unsigned char channel,
 }
 
 struct RtEventResult RtNoteOnEvent::run(RtMidiOut *m, Context rtContext, uint_fast32_t triggerKey) {
-  openNotes[triggerKey]->push_back(this);
+  lock_guard<mutex> tGuard(noteTerminationMutex);
+  openNotes[triggerKey]->push_back(this->clone());
   m->sendMessage(&message);
   return (RtEventResult){.next = getNext(), .pausepulses = getPausePulses()};
 }
@@ -70,6 +73,7 @@ RtNoteOffEvent::RtNoteOffEvent(RtNoteOnEvent *on) {
   legacyMessage.push_back(0);
 }
 struct RtEventResult RtNoteOffEvent::run(RtMidiOut *m, Context rtContext, uint_fast32_t triggerKey) {
+  lock_guard<mutex> tGuard(noteTerminationMutex);
   m->sendMessage(&message);
   m->sendMessage(&legacyMessage);
   vector<RtNoteOnEvent *> *on = openNotes[triggerKey];

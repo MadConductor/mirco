@@ -168,6 +168,9 @@ Note::Note(string s) {
   int octaveOffset = 12 * octave;
   noteVal += octaveOffset;
   key = noteVal;
+  velocity = 127;
+  denominator = 1;
+  dutycycle = 1;
 };
 
 Note::Note(Note *n, uint_fast32_t v, uint_fast32_t d, uint_fast32_t du) 
@@ -185,8 +188,8 @@ string Note::toString() {
   int octave = ((key - noteVal) / 12) - 1;
   string note = valueToNoteMap[noteVal];
   note.append(to_string(octave));
-  note.append(":");
-  note.append(to_string(velocity));
+  note.append("|");
+  note.append(to_string(getVelocity()));
   return note;
 };
 

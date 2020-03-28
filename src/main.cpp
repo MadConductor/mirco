@@ -76,6 +76,8 @@ unordered_map<uint_fast32_t, RtEvent *> playMap;
 unordered_map<int, int> nextPulseMap;
 unordered_map<int, vector<RtNoteOnEvent *>*> openNotes;
 mutex playMutex;
+mutex deltaMutex;
+mutex noteTerminationMutex;
 
 auto now = clk::now();
 auto lastPulse = now;
@@ -90,17 +92,30 @@ uint_fast32_t numPulses = 0;
 */
 float estimateBpm() {
   if(!GLOBAL_SETTINGS.FOLLOW_INPUT_CLOCK.val) return GLOBAL_SETTINGS.DEFAULT_BPM.val;
-  int size = deltas.size();
   chrono::nanoseconds avgDelta(0);
 
+  lock_guard<mutex> guard(deltaMutex);
+  int size = deltas.size();
   for (int i=0; i<size; i++) {
     auto delta = deltas[i];
     avgDelta += delta / size;
   }
-
+  if (avgDelta.count() == 0) {return 0;}
   float estimatedBpm = (((float)NS_MIN) / avgDelta.count()) / GLOBAL_SETTINGS.INPUT_PPQN.val;
   return estimatedBpm;
 };
+
+/*
+  Stores a time delta value.
+*/
+
+void storeDelta(chrono::nanoseconds delta) {
+  lock_guard<mutex> guard(deltaMutex);
+  deltas.push_back(delta);
+  if (deltas.size() > (GLOBAL_SETTINGS.INPUT_PPQN.val * 4)) {
+    deltas.pop_front();
+  }
+}
 
 /*
   Handles an incoming clock pulse by computing
@@ -112,11 +127,7 @@ void handleClockPulse(vector<unsigned char> *message) {
   now = clk::now();
   auto delta = now - lastPulse;
 
-  //TODO thread-safety
-  deltas.push_back(delta);
-  if (deltas.size() > (GLOBAL_SETTINGS.INPUT_PPQN.val * 4)) {
-    deltas.pop_front();
-  }
+  storeDelta(delta);
   if (numPulses % (GLOBAL_SETTINGS.INPUT_PPQN.val * 4) == 0) {
     printf("\rEstimated BPM: %f", estimateBpm());
   }
@@ -145,7 +156,7 @@ void handleOnMsg(vector<unsigned char> *message) {
   }
   vector<RtNoteOnEvent *> *vec = new vector<RtNoteOnEvent *>({});
   lock_guard<mutex> guard(playMutex);
-  playMap[key] = event;
+  playMap[key] = event->clone();
   openNotes[key] = vec;
 }
 
@@ -157,6 +168,7 @@ void handleOnMsg(vector<unsigned char> *message) {
 void handleOffMsg(vector<unsigned char> *message) {
   unsigned char key = message->at(1);
   vector<RtNoteOnEvent *> *on;
+  lock_guard<mutex> tGuard(noteTerminationMutex);
   try {
     on = openNotes.at(key);
   } catch (const std::out_of_range& oor) {
@@ -169,7 +181,7 @@ void handleOffMsg(vector<unsigned char> *message) {
     RtNoteOffEvent *off = new RtNoteOffEvent(on->at(i));
     start->append(off);
   }
-  lock_guard<mutex> guard(playMutex);
+  lock_guard<mutex> pGuard(playMutex);
   playMap[key] = start;
 }
 
@@ -281,6 +293,7 @@ RtMidiOut *openMidiOut() {
 */
 RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, uint_fast32_t key, uint_fast32_t totalPulses) {
   RtEventResult res = event->run(midiout, *rtContext, key);
+
   bool end = res.next == nullptr;
 
   if (res.pausepulses == 0 && !end) {
@@ -294,6 +307,7 @@ RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, u
     playMap.erase(key);
     nextPulseMap.erase(key);
   }
+
   return res;
 }
 

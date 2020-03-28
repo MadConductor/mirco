@@ -3,6 +3,7 @@
 .clangd/
 build/
 mirco
+vgcore.*
 
 compile_commands.json
 

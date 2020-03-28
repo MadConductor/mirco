@@ -22,10 +22,10 @@ TONE_LITERAL {OCTAVE}|{SEMITONE}|{OCTAVE}{SEMITONE}
 %%
 
 [ \t\n]         ;
-
-sequence        { return SEQUENCE; }
-default           { return DEFAULT; }
-auto            { return AUTO; }
+"//".*  ;
+sequence { return SEQUENCE; }
+default  { return DEFAULT; }
+auto     { return AUTO; }
 
 {TONE_LITERAL} {
   Tone *tone = new Tone(yytext);

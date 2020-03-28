@@ -19,6 +19,6 @@ sequence seq4() { $trigger + {
     (C3, D#3, G3)|50:8:2,  (C3, D#3, G3)|50:16:2 + 7s
 }}
 
-default: seq4()
-auto: seq1(§trigger)
-C4: seq1(C4:50)
+default: seq1($trigger)
+auto: seq1($trigger)
+C4: seq1(C4)

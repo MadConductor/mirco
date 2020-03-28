@@ -50,7 +50,7 @@ void yyerror(const char *s) {
 %token <sval>  NOTE
 %token <toneval>  TONE_LITERAL
 %token <rtresourceval>  RTRESOURCE
-%token <sval>  OPERATOR
+%token <sval>  OPERATOR ENDL EVERYTHING
 
 // unused
 %token <fval>  FLOAT
@@ -385,3 +385,4 @@ exp:
   }
 ;
 %%
+

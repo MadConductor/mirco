@@ -75,8 +75,8 @@ class Note : public SequenceNode {
 
     Note() = default;
     Note(string s);
-    Note(Note *n, uint_fast32_t v, uint_fast32_t d = 1, uint_fast32_t du = 1);
-    Note(uint_fast32_t k, uint_fast32_t v, uint_fast32_t d = 1, uint_fast32_t du = 1);
+    Note(Note *n, uint_fast32_t v = 127, uint_fast32_t d = 1, uint_fast32_t du = 1);
+    Note(uint_fast32_t k, uint_fast32_t v = 127, uint_fast32_t d = 1, uint_fast32_t du = 1);
 
     virtual string toString() override;
     virtual SequenceNode::Type getType() override { return SequenceNode::NOTE; };
@@ -294,7 +294,12 @@ class Operation : public AmbiguousSequenceNode, public RtEvent {
     
     Operation() = default;
     Operation(string o, LhsT *l, RhsT *r);
-
+    Operation(const Operation &obj) 
+      : next(obj.next != nullptr ? obj.next->clone() : nullptr),
+      lhs(obj.lhs), 
+      rhs(obj.rhs), op(obj.op),
+      channel(obj.channel),
+      multiplier(obj.multiplier) {};
     string toString() override;
     virtual SequenceNode::Type getType() override { return SequenceNode::OPERATION; };
 
@@ -305,6 +310,10 @@ class Operation : public AmbiguousSequenceNode, public RtEvent {
     void setNext(RtEvent *n) override { next = n; };
     RtEvent *getNext() override { return next; };
     struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t key) override;
+    
+    Operation<LhsT, RhsT> *clone() const override {
+      return new Operation<LhsT, RhsT>(*this); 
+    };
 
     SequenceNode *operator+(Note *o);
     SequenceNode *operator+(Tone *o);

@@ -5,6 +5,9 @@
 #include <map>
 #include <unordered_map>
 #include <string>
+#include <mutex>
+
+#include "object.hpp"
 
 using namespace std;
 // language fwd declarations
@@ -52,11 +55,12 @@ using Context = unordered_map<string, SequenceNode *>;
 //-----------------------------------------------------------------
 class RtNoteOffEvent;
 
-class RtEvent {
+class RtEvent : public object::cloneable<RtEvent> {
   private:
-    RtEvent *next;
+    RtEvent *next = nullptr;
 
   public:
+
     virtual uint_fast32_t getPausePulses() = 0;
     virtual void setNext(RtEvent * n) = 0;
     virtual RtEvent *getNext() = 0;
@@ -73,44 +77,59 @@ struct RtEventResult {
   Helper class that does nothing but host the next event.
   Used for building event chains.
 */
-class RtNopEvent : public RtEvent {
+class RtNopEvent : public RtEvent, public object::cloneable<RtNopEvent>  {
   private:
-    RtEvent *next;
+    RtEvent *next = nullptr;
     uint_fast32_t pausepulses;
 
   public:
     RtNopEvent(uint_fast32_t pulses);
+    RtNopEvent(const RtNopEvent &obj) 
+    : pausepulses(obj.pausepulses),        
+      next(obj.next != nullptr ? obj.next->clone() : nullptr) {};
+
     uint_fast32_t getPausePulses() override { return pausepulses; };
     void setNext(RtEvent *n) override { next = n; };
     RtEvent *getNext() override { return next; };
     struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) override;
 
+    virtual RtNopEvent *clone() const override {
+      return new RtNopEvent(*this); 
+    };
 };
 
-class RtNoteOnEvent : public RtEvent {
+class RtNoteOnEvent : public RtEvent, public object::cloneable<RtNoteOnEvent> {
   private:
     typedef RtEvent super;
-    RtEvent *next;
+    RtEvent *next = nullptr;
     uint_fast32_t pausepulses;
     vector<unsigned char> message;
     //std::vector<unsigned char> message;
 
   public:
     RtNoteOnEvent(unsigned char channel, unsigned char byte2, unsigned char byte3, uint_fast32_t pulses);
+    RtNoteOnEvent(const RtNoteOnEvent &obj)
+      : pausepulses(obj.pausepulses), message(obj.message), 
+        next(obj.next != nullptr ? obj.next->clone() : nullptr) {};
+
     uint_fast32_t getPausePulses() override { return pausepulses; };
     void setNext(RtEvent *n) override { next = n; };
     RtEvent *getNext() override { return next; };
-    unsigned char getChannel() { return message[0] & 0x0f; }
-    unsigned char getKey() { return message[1]; }
-    unsigned char getVelocity() { return message[2]; }
+    unsigned char getChannel() const { return message[0] & 0x0f; }
+    unsigned char getKey() const { return message[1]; }
+    unsigned char getVelocity() const { return message[2]; }
     bool isKey(unsigned char key);
     struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) override;
+
+    RtNoteOnEvent *clone() const override {
+      return new RtNoteOnEvent(*this); 
+    };
 };
 
-class RtNoteOffEvent : public RtEvent {
+class RtNoteOffEvent : public RtEvent, public object::cloneable<RtNoteOffEvent> {
   private:
     typedef RtEvent super;
-    RtEvent *next;
+    RtEvent *next = nullptr;
     uint_fast32_t pausepulses;
     vector<unsigned char> message;
     vector<unsigned char> legacyMessage;
@@ -119,9 +138,21 @@ class RtNoteOffEvent : public RtEvent {
   public:
     RtNoteOffEvent(unsigned char channel, unsigned char byte2, uint_fast32_t pulses);
     RtNoteOffEvent(RtNoteOnEvent *on);
+    RtNoteOffEvent(const RtNoteOffEvent &obj) 
+      : pausepulses(obj.pausepulses), 
+        message(obj.message), 
+        legacyMessage(obj.legacyMessage), 
+        next(obj.next != nullptr ? obj.next->clone() : nullptr) {};
+
     uint_fast32_t getPausePulses() override { return pausepulses; };
     void setNext(RtEvent *n) override { next = n; };
     RtEvent *getNext() override { return next; };
-    unsigned char getKey() { return message[1]; }
+    unsigned char getChannel() const { return message[0] & 0x0f; }
+    unsigned char getKey() const { return message[1]; }
+    unsigned char getVelocity() const { return message[2]; }
     struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) override;
+
+    RtNoteOffEvent *clone() const override {
+      return new RtNoteOffEvent(*this); 
+    };
 };
