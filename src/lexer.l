@@ -23,6 +23,7 @@ TONE_LITERAL {OCTAVE}|{SEMITONE}|{OCTAVE}{SEMITONE}
 
 [ \t\n]         ;
 "//".*  ;
+
 sequence { return SEQUENCE; }
 default  { return DEFAULT; }
 auto     { return AUTO; }
