@@ -1,6 +1,3 @@
-//TODO: license
-
-
 #include <cstdint>
 #include <string>
 #include <getopt.h>

@@ -12,15 +12,10 @@
      \__\/                     \__\/         \__\/         \__\/
 
   Sequence Definition Language (c) 2020 Mircosoft
+  Licensed GPLv3 (see LICENSE)
 
   Lukas Hannen, Max Wolschlager
 */
-
-//SECTION license --------------------------------
-
-//TODO license
-
-
 
 //SECTION includes -------------------------------
 
@@ -65,7 +60,6 @@ class globalAtomics {
     running.store(runstate);
     internal_counter.store(0);
     external_counter.store(0);
-
   }
 
 } GLOBAL_ATOMICS(true);
@@ -356,10 +350,11 @@ void outputLoop() {
     }
     totalPulses++;
 
-    // sleep thread until next internal pulse
-    // TODO: support high bpm (will only work
-    // on real time kernels as of now)
+    // busy wait until next internal pulse
+    // TODO: determine wait method according to kernel features
+    
     while (clk::now() < nextPulseNs) {}
+    // this_thread::sleep_until(nextPulseNs);
   }
 }
 

@@ -1,5 +1,6 @@
 .vscode/
 .history/
+.clangd/
 build/
 mirco
 

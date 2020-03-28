@@ -2,6 +2,18 @@
 Mirco is a MIDI sequence definition language, it takes midi input and maps simple input notes to more complex patterns.
 Defined sequences can be parameterised and reused, allowing the easy creation of complex, variative patterns.
 
+This project is still very much a work in progress, all known bugs and problems are marked with "TODO".
+Feel free to solve any of them and submit a pull request.
+
+Open tasks include (but are not limited to):
+
+ - remaining operators (multiplication and division)
+ - thread safety (use mutexes where needed -> // TODO thread safety)
+ - make command line parameters declarable in a file
+ - check the availability of identifiers in a given sequence definition
+ - parameter error checking
+ - more ...?
+
 ## Setup
 
 Install `bison` and `flex`.
@@ -42,13 +54,13 @@ Defaults to 120.
 
 Specifies the midi api to be used by RtMidi.
 Following apis are available to be selected explicitly:
-   
-    - `alsa`
 
-    - `jack`
+- `alsa`
 
-    - `macosx_core`
-    
+- `jack`
+
+- `macosx_core`
+
 
 Linux provides ALSA and JACK apis (assuming they are installed).
 Note: JACK seems to introduce a lot of latency (500 - 1000ms),
