@@ -41,14 +41,14 @@ public:
   puft INPUT_PORT         = puft(0,    {"input",      rarg, 0,'i'});
   puft OUTPUT_PORT        = puft(0,    {"output",     rarg, 0,'o'});
   pbol FOLLOW_INPUT_CLOCK = pbol(false,{"follow-clk", oarg, 0,'c'});
-  puft INPUT_PPQN         = puft(24,   {"",           narg, 0,'?'});
+  puft INPUT_PPQN         = puft(24,   {"",narg, 0,'?'});
 
   puft DEFAULT_BPM        = puft(120,  {"bpm",        rarg, 0,'b'});
 
   papi BACKEND            = papi(rmau, {"api",        rarg, 0,'a'});
 
 
-  pbol INPUT_CONTROLS     = pbol(false,{"",           narg, 0,'?'});
+  pbol INPUT_CONTROLS     = pbol(false,{"",narg, 0,'?'});
 
   const struct option LONG_OPTS[6] = {
                                                 INPUT_PORT.OPT,
