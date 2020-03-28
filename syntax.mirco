@@ -9,7 +9,7 @@ sequence seq1(A) {
 }
 
 sequence seq3() {
-    C4:50:16, (C3, D#3), (C3, D#3, G3), C4|50:16
+    C4:50:16, /* test comment */ (C3, D#3), (C3, D#3, G3), C4|50:16
 }
 
 sequence seq4() { $trigger + {
