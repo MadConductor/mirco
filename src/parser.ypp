@@ -30,6 +30,7 @@ void yyerror(const char *s) {
   char *sval;
 
   Note *noteval;
+  Pause *pauseval;
   Tone *toneval;
   Identifier *idval;
   SequenceNode *nodeval;
@@ -50,13 +51,14 @@ void yyerror(const char *s) {
 %token <sval>  NOTE
 %token <toneval>  TONE_LITERAL
 %token <rtresourceval>  RTRESOURCE
-%token <sval>  OPERATOR ENDL EVERYTHING
+%token <sval>  OPERATOR ENDL PAUSE
 
 // unused
 %token <fval>  FLOAT
 %token <sval>  STRING
 
 %type  <noteval> note
+%type  <pauseval> pause
 %type  <nodeval> sequence_node operation
 %type  <sequenceval> sequence
 %type  <chordval> chord
@@ -95,6 +97,9 @@ operation:
   | IDENTIFIER OPERATOR chord {
     $$ = doOperation($2, $1, $3);
   }
+  | IDENTIFIER OPERATOR pause {
+    $$ = doOperation($2, $1, $3);
+  }
   | IDENTIFIER OPERATOR '(' operation ')' {
     $$ = doOperation($2, $1, $4);
   }
@@ -116,6 +121,9 @@ operation:
   }  
   | RTRESOURCE OPERATOR chord {
     $$ = doOperation($2, $1, $3);
+  }
+  | RTRESOURCE OPERATOR pause {
+    $$ = doOperation($2,$1, $3);
   }
   | RTRESOURCE OPERATOR '(' operation ')' {
     $$ = doOperation($2, $1, $4);
@@ -139,6 +147,9 @@ operation:
   | note OPERATOR chord {
     $$ = doOperation($2, $1, $3);
   }
+  | note OPERATOR pause {
+    $$ = doOperation($2,$1, $3);
+  }
   | note OPERATOR '(' operation ')' {
     $$ = doOperation($2, $1, $4);
   }
@@ -160,6 +171,9 @@ operation:
   }
   | TONE_LITERAL OPERATOR chord {
     $$ = doOperation($2, $1, $3);
+  }
+  | TONE_LITERAL OPERATOR pause {
+    $$ = doOperation($2,$1, $3);
   }
   | TONE_LITERAL OPERATOR '(' operation ')'  {
     $$ = doOperation($2, $1, $4);
@@ -183,6 +197,9 @@ operation:
   | sequence OPERATOR chord {
     $$ = doOperation($2, $1, $3);
   }
+  | sequence OPERATOR pause {
+    $$ = doOperation($2,$1, $3);
+  }
   | sequence OPERATOR '(' operation ')'  {
     $$ = doOperation($2, $1, $4);
   }
@@ -205,6 +222,9 @@ operation:
   | chord OPERATOR sequence {
     $$ = doOperation($2, $1, $3);
   }
+  | chord OPERATOR pause {
+    $$ = doOperation($2,$1, $3);
+  }
   | chord OPERATOR '(' operation ')'  {
     $$ = doOperation($2, $1, $4);
   }
@@ -226,6 +246,9 @@ operation:
   }
   | operation OPERATOR sequence {
     $$ = doOperation($2, $1, $3);
+  }
+  | operation OPERATOR pause {
+    $$ = doOperation($2,$1, $3);
   }
   | '(' operation ')' {
     $$ = $2;
@@ -308,6 +331,15 @@ note:
   }
 ;
 
+pause:
+  PAUSE {
+    $$ = new Pause(1);
+  }
+  | pause denominator {
+    $$ = new Pause($2->first);
+  }
+;
+
 chord:
   '(' node_list ')' velocity {
     Chord *c = new Chord(*$2, $4);
@@ -350,6 +382,9 @@ sequence_node:
     $$ = (SequenceNode *)$2;
   }
   | chord {
+    $$ = (SequenceNode *)$1;
+  }
+  | pause {
     $$ = (SequenceNode *)$1;
   }
 ;

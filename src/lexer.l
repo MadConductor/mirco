@@ -11,10 +11,8 @@
 DIGIT [0-9]
 INT [1-9]{DIGIT}*
 IDENTIFIER [a-zA-Z][a-zA-Z0-9_\-]* 
-VELOCITY \:{INT}
-DENOMINATOR <{INT}(\|{INT})?>
 NOTE [ABCDEFGHabcdefgh](#|b)?[0-9]
-BREAK _{INT}
+PAUSE [_]
 OPERATOR [\+\-\*\/\=]
 SEMITONE {INT}[s]
 OCTAVE {INT}[o]
@@ -29,6 +27,11 @@ TONE_LITERAL {OCTAVE}|{SEMITONE}|{OCTAVE}{SEMITONE}
 sequence { return SEQUENCE; }
 default  { return DEFAULT; }
 auto     { return AUTO; }
+
+{PAUSE} {
+  yylval.sval = strdup(yytext);
+  return PAUSE;
+}
 
 {TONE_LITERAL} {
   Tone *tone = new Tone(yytext);
