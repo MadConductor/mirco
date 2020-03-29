@@ -3,6 +3,19 @@
   #include <map>
   #include "../src/lang.hpp"
   #include "parser.hpp"
+  #include "yytype.hpp"
+
+  #define YY_EXTRA_TYPE struct scanner_extra_data*
+
+  #define YY_INPUT(buf, result, max_size)           \
+    do {                                            \
+      auto c = yyextra->stream->get();              \
+      int n = 0;                                    \
+      if (c)                                        \
+        buf[n++] = (char)c;                         \
+      if(!yyextra->stream->good()) break;           \
+      result = n;                                   \
+    } while (0)
 %}
 
 %option yylineno
