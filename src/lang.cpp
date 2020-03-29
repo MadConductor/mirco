@@ -337,9 +337,8 @@ Pause::Pause(uint_fast32_t d) : denominator(d) {};
 //- Methods
 
 string Pause::toString() {
-  string pause = "_";
+  string pause = "_:";
   pause.append(to_string(denominator));
-  pause.append("_");
   return pause;
 };
 
