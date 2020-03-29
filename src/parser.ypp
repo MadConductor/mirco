@@ -1,4 +1,10 @@
 /* Code section */
+
+%define api.pure full
+%lex-param {void* yyscanner}
+%parse-param {void* yyscanner}
+%param {std::istream *stream}
+
 %{
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,18 +13,28 @@
 #include <vector>
 #include <utility>
 #include "../src/lang.hpp"
+#include "../src/yytype.hpp"
+#include "parser.hpp"
+
+#define YY_EXTRA_TYPE struct scanner_extra_data*
+#define YYLEX_PARAM void*, struct scanner_extra_data*
 
 extern int yylineno;
-extern int yylex();
-extern int yyparse();
+extern int yylex(YYSTYPE *, YYLTYPE*, void*, std::istream* stream);
+extern int yyparse(void* yyscanner, std::istream* );
 extern FILE *yyin;
 
 unordered_map<int, RtEvent *> eventMap;
 unordered_map<string, Definition *> defs;
 
-void yyerror(const char *s) {
-	fprintf(stderr, "Error: (line %d) %s\n", yylineno, s);
+void yyerror(YYLTYPE* yylloc, void*, std::istream *, const char *s) {
+	fprintf(stderr, "Error: (line %d) %s\n", yylloc->first_line, s);
 	exit(1);
+}
+
+void yyerror(const char *s) {
+	fprintf(stderr, "Error: (line ?) %s\n", s);
+    exit(1);
 }
 
 

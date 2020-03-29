@@ -1,25 +1,31 @@
 %{
-  #include <iostream>
+  #include <istream>
   #include <map>
   #include "../src/lang.hpp"
   #include "parser.hpp"
-  #include "yytype.hpp"
+  #include "../src/yytype.hpp"
 
   #define YY_EXTRA_TYPE struct scanner_extra_data*
 
+#define YY_DECL int yylex(YYSTYPE *yylval_param,\
+                                  YYLTYPE *llocp,\
+                                  yyscan_t yyscanner,\
+                                  std::istream* stream)
+
   #define YY_INPUT(buf, result, max_size)           \
     do {                                            \
-      auto c = yyextra->stream->get();              \
+      auto c = yyextra->stream->get();                       \
       int n = 0;                                    \
       if (c)                                        \
         buf[n++] = (char)c;                         \
-      if(!yyextra->stream->good()) break;           \
+      if(!yyextra->stream->good()) break;                    \
       result = n;                                   \
     } while (0)
 %}
 
 %option yylineno
 %option noyywrap
+%option reentrant bison-bridge
 
 DIGIT [0-9]
 INT [1-9]{DIGIT}*
@@ -42,52 +48,52 @@ default  { return DEFAULT; }
 auto     { return AUTO; }
 
 {PAUSE} {
-  yylval.sval = strdup(yytext);
+  yylval->sval = strdup(yytext);
   return PAUSE;
 }
 
 {TONE_LITERAL} {
   Tone *tone = new Tone(yytext);
-  yylval.toneval = tone; 
+  yylval->toneval = tone; 
   return TONE_LITERAL;
 }
 
 {NOTE}    {
-  yylval.sval = strdup(yytext);
+  yylval->sval = strdup(yytext);
   return NOTE;
 }
 
 \${IDENTIFIER}   { 
   RtResource *rr = new RtResource(strdup(yytext));
-  yylval.rtresourceval = rr;
+  yylval->rtresourceval = rr;
   return RTRESOURCE;
 }
 
 {IDENTIFIER}   { 
   Identifier *id = new Identifier(strdup(yytext));
-  yylval.idval = id;
+  yylval->idval = id;
   return IDENTIFIER;
 }
 
 \"[a-zA-Z0-9]*\"    { 
-  yylval.sval = strdup(yytext);
+  yylval->sval = strdup(yytext);
   return STRING;
 }
 
 {INT}?\.{DIGIT}+  { 
-  yylval.fval = atof(yytext);
+  yylval->fval = atof(yytext);
   return FLOAT;
 }
 
 {INT}          { 
-  yylval.ival = atoi(yytext); 
+  yylval->ival = atoi(yytext); 
   return INT;
 }
 
 [\(\)\{\}\|:;,<>]    { return yytext[0]; }
 
 {OPERATOR} { 
-  yylval.sval = strdup(yytext); 
+  yylval->sval = strdup(yytext); 
   return OPERATOR;
 }
 
