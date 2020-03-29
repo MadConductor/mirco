@@ -36,8 +36,7 @@ SequenceNode *SequenceNode::operator+(RtResource *o) {
 };
 
 SequenceNode *SequenceNode::operator+(Pause *o) {
-  yyerror("cannot add to Pause.");
-  return nullptr;
+  return new Pause(o->denominator);
 };
 
 SequenceNode *SequenceNode::operator+(SequenceNode *o) {
@@ -71,8 +70,7 @@ SequenceNode *SequenceNode::operator-(RtResource *o){
 };
 
 SequenceNode *SequenceNode::operator-(Pause *o){
-  yyerror("cannot substract from to pause.");
-  return nullptr;
+  return new Pause(o->denominator);
 };
 
 SequenceNode *SequenceNode::operator-(SequenceNode *o) {
@@ -358,13 +356,11 @@ RtEvent *Pause::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) 
 //- Operators
 
 SequenceNode *Pause::operator+(SequenceNode *o){
-  yyerror("cannot add to Pause.");
-  return nullptr;
+  return new Pause(this->denominator);
 };
 
 SequenceNode *Pause::operator-(SequenceNode *o){
-  yyerror("cannot substract from to pause.");
-  return nullptr;
+  return new Pause(this->denominator);
 };
 
 /*
