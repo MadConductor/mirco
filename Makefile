@@ -17,7 +17,7 @@ build/%.o: src/%.cpp
 	g++ $(FLAGS) $(DEBUG_FLAGS) $^ -c -o $@
 
 mirco: build build/parser.cpp build/lexer.cpp $(OBJECTS)
-	g++ $(LDFLAGS) $(OBJECTS) -o $@
+	g++ $(LDFLAGS) $(DEBUG_FLAGS) $(OBJECTS) -o $@
 
 build:
 	mkdir build
