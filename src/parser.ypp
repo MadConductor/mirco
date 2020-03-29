@@ -3,7 +3,6 @@
 %define api.pure full
 %lex-param {void* yyscanner}
 %parse-param {void* yyscanner}
-%param {std::istream *stream}
 
 %{
 #include <stdio.h>
@@ -20,14 +19,14 @@
 #define YYLEX_PARAM void*, struct scanner_extra_data*
 
 extern int yylineno;
-extern int yylex(YYSTYPE *, YYLTYPE*, void*, std::istream* stream);
-extern int yyparse(void* yyscanner, std::istream* );
+extern int yylex(YYSTYPE *, YYLTYPE*, void*);
+extern int yyparse(void* yyscanner);
 extern FILE *yyin;
 
 unordered_map<int, RtEvent *> eventMap;
 unordered_map<string, Definition *> defs;
 
-void yyerror(YYLTYPE* yylloc, void*, std::istream *, const char *s) {
+void yyerror(YYLTYPE* yylloc, void*, const char *s) {
 	fprintf(stderr, "Error: (line %d) %s\n", yylloc->first_line, s);
 	exit(1);
 }

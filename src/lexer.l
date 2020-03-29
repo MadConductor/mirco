@@ -9,16 +9,15 @@
 
 #define YY_DECL int yylex(YYSTYPE *yylval_param,\
                                   YYLTYPE *llocp,\
-                                  yyscan_t yyscanner,\
-                                  std::istream* stream)
+                                  yyscan_t yyscanner)
 
-  #define YY_INPUT(buf, result, max_size)           \
+#define YY_INPUT(buf, result, max_size)             \
+    int n = 0;                                      \
     do {                                            \
-      auto c = yyextra->stream->get();                       \
-      int n = 0;                                    \
+      auto c = yyextra->stream->get();              \
       if (c)                                        \
         buf[n++] = (char)c;                         \
-      if(!yyextra->stream->good()) break;                    \
+      if(!yyextra->stream->good()) break;           \
       result = n;                                   \
     } while (0)
 %}
