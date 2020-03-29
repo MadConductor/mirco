@@ -13,13 +13,13 @@
 
 #define YY_INPUT(buf, result, max_size)             \
     int n = 0;                                      \
-    do {                                            \
+    while(n < max_size) {                          \
       auto c = yyextra->stream->get();              \
       if (c)                                        \
         buf[n++] = (char)c;                         \
       if(!yyextra->stream->good()) break;           \
       result = n;                                   \
-    } while (0)
+    }
 %}
 
 %option yylineno
