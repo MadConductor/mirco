@@ -10,10 +10,11 @@
 
 DIGIT [0-9]
 INT [1-9]{DIGIT}*
-IDENTIFIER [a-zA-Z][a-zA-Z0-9]* 
+IDENTIFIER [a-zA-Z][a-zA-Z0-9_\-]* 
 VELOCITY \:{INT}
 DENOMINATOR <{INT}(\|{INT})?>
 NOTE [ABCDEFGHabcdefgh](#|b)?[0-9]
+BREAK _{INT}
 OPERATOR [\+\-\*\/\=]
 SEMITONE {INT}[s]
 OCTAVE {INT}[o]
