@@ -317,7 +317,45 @@ SequenceNode *Note::operator-(SequenceNode *o) {
   return doOperationLhs("-", this, o);
 };
 
-// --- Note 
+// --- Note
+/*
+  Pause
+*/
+
+//- Constructors
+
+Pause::Pause(uint_fast32_t d) : denominator(d) {};
+
+//- Methods
+
+string Pause::toString() {
+  string pause = "_";
+  pause.append(to_string(denominator));
+  pause.append("_");
+  return pause;
+};
+
+RtEvent *Pause::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
+  uint_fast32_t pulses = (MIDI_PULSES_PQN * 4) / denominator;
+
+  RtNopEvent *nop =
+      new RtNopEvent(pulses );
+
+
+  return (RtEvent *)nop;
+};
+
+//- Operatord
+
+SequenceNode *Pause::operator+(SequenceNode *o){
+  yyerror("cannot add to Pause.");
+  return nullptr;
+};
+
+SequenceNode *Pause::operator-(SequenceNode *o){
+  yyerror("cannot substract from to pause.");
+  return nullptr;
+};
 
 /*
     Tone

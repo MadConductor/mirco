@@ -15,6 +15,7 @@ class SequenceNode {
   public:
     enum Type {
       NOTE,
+      PAUSE,
       TONE,
       CHORD,
       SEQUENCE,
@@ -101,6 +102,24 @@ class Note : public SequenceNode {
     SequenceNode *operator-(Chord *o);
     SequenceNode *operator-(Identifier *o);
     SequenceNode *operator-(RtResource *o);
+    SequenceNode *operator-(SequenceNode *o);
+};
+/*
+  Pause / Break, very boring.
+*/
+class Pause : public SequenceNode {
+  public:
+    uint_fast32_t denominator;
+
+    Pause() = default;
+    Pause(uint_fast32_t d = 1);
+
+    virtual string toString() override;
+    virtual SequenceNode::Type getType() override { return SequenceNode::PAUSE; };
+
+    RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
+
+    SequenceNode *operator+(SequenceNode *o);
     SequenceNode *operator-(SequenceNode *o);
 };
 
