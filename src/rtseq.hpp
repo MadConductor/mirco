@@ -18,6 +18,7 @@ class Definition;
 class Sequence;
 class Chord;
 class Note;
+class Pause;
 class Tone;
 class Identifier;
 class RtResource;

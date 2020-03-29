@@ -35,6 +35,11 @@ SequenceNode *SequenceNode::operator+(RtResource *o) {
   return doOperationRhs("+", this, o);
 };
 
+SequenceNode *SequenceNode::operator+(Pause *o) {
+  yyerror("cannot add to Pause.");
+  return nullptr;
+};
+
 SequenceNode *SequenceNode::operator+(SequenceNode *o) {
   return doOperationLhs("+", this, o);
 };
@@ -61,8 +66,13 @@ SequenceNode *SequenceNode::operator-(Identifier *o) {
   return doOperationRhs("-", this, o);
 };
 
-SequenceNode *SequenceNode::operator-(RtResource *o) {
+SequenceNode *SequenceNode::operator-(RtResource *o){
   return doOperationRhs("-", this, o);
+};
+
+SequenceNode *SequenceNode::operator-(Pause *o){
+  yyerror("cannot substract from to pause.");
+  return nullptr;
 };
 
 SequenceNode *SequenceNode::operator-(SequenceNode *o) {
@@ -345,7 +355,7 @@ RtEvent *Pause::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) 
   return (RtEvent *)nop;
 };
 
-//- Operatord
+//- Operators
 
 SequenceNode *Pause::operator+(SequenceNode *o){
   yyerror("cannot add to Pause.");

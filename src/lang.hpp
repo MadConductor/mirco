@@ -37,6 +37,7 @@ class SequenceNode {
     SequenceNode *operator+(Chord *o);
     SequenceNode *operator+(Identifier *o);
     SequenceNode *operator+(RtResource *o);
+    SequenceNode *operator+(Pause *o);
     SequenceNode *operator+(SequenceNode *o);
 
     SequenceNode *operator-(Note *o);
@@ -45,6 +46,7 @@ class SequenceNode {
     SequenceNode *operator-(Chord *o);
     SequenceNode *operator-(Identifier *o);
     SequenceNode *operator-(RtResource *o);
+    SequenceNode *operator-(Pause *o);
     SequenceNode *operator-(SequenceNode *o);
 };
 
@@ -411,6 +413,9 @@ SequenceNode *doOperationLhs(string opstr, LhsT *lhs, SequenceNode *rhs) {
     case SequenceNode::RTRESOURCE:
       return doOperation(opstr, lhs, static_cast<RtResource *>(rhs));
       break;
+    case SequenceNode::PAUSE:
+      return doOperation(opstr, lhs, static_cast<Pause *>(rhs));
+      break;
     default:
       throw logic_error("Unknown Operator");
       break;
@@ -441,6 +446,9 @@ SequenceNode *doOperationRhs(string opstr, SequenceNode *lhs, RhsT *rhs) {
       break;
     case SequenceNode::RTRESOURCE:
       return doOperation(opstr, static_cast<RtResource *>(lhs), rhs);
+      break;
+    case SequenceNode::PAUSE:
+      return doOperation(opstr, static_cast<Pause *>(lhs), rhs);
       break;
     default:
       throw logic_error("Unknown Operator");
