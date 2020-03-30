@@ -385,14 +385,6 @@ int main(int argc, char* argv[]) {
 
   // open mirco file
 
-  /*FILE *file = fopen(filename, "r");
-  if (!file) {
-    fprintf(stderr, "Cannot open: %s\n", filename);
-    return -1;
-    }
-
-    yyin = file;*/
-
   ifstream *ifs = new ifstream();
   ifs->open(filename, ifstream::in);
   struct scanner_extra_data scdat {.stream = ifs};
