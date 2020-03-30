@@ -55,7 +55,8 @@ using Context = unordered_map<string, SequenceNode *>;
 
 //-----------------------------------------------------------------
 class RtNoteOffEvent;
-
+class RtEvent;
+void deleteEvents(RtEvent*);
 class RtEvent : public object::cloneable<RtEvent> {
   private:
     RtEvent *next = nullptr;
@@ -157,3 +158,11 @@ class RtNoteOffEvent : public RtEvent, public object::cloneable<RtNoteOffEvent> 
       return new RtNoteOffEvent(*this); 
     };
 };
+
+void deleteEvents(RtEvent *start) {
+  RtEvent *next = start->getNext();
+  if (next != nullptr) {
+    deleteEvents(next);
+  }
+  free(start);
+}

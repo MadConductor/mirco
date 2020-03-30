@@ -34,7 +34,7 @@ RtNoteOnEvent::RtNoteOnEvent(unsigned char channel,
 
 struct RtEventResult RtNoteOnEvent::run(RtMidiOut *m, Context rtContext, uint_fast32_t triggerKey) {
   lock_guard<mutex> tGuard(noteTerminationMutex);
-  openNotes[triggerKey]->push_back(this->clone()); // TODO: fix memory leak
+  openNotes[triggerKey]->push_back(this->clone());
   m->sendMessage(&message);
   return (RtEventResult){.next = getNext(), .pausepulses = getPausePulses()};
 }

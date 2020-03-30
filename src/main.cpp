@@ -162,7 +162,7 @@ void handleOnMsg(vector<unsigned char> *message) {
   }
   vector<RtNoteOnEvent *> *vec = new vector<RtNoteOnEvent *>({});
   lock_guard<mutex> guard(playMutex);
-  playMap[key] = event->clone(); // TODO: fix memory leak
+  playMap[key] = event->clone();
   openNotes[key] = vec;
 }
 
@@ -310,6 +310,7 @@ RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, u
     playMap[key] = res.next;
   } else {
     lock_guard<mutex> guard(playMutex);
+    deleteEvents(playMap[key]);
     playMap.erase(key);
     nextPulseMap.erase(key);
   }
