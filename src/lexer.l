@@ -15,8 +15,10 @@
     int n = 0;                                      \
     while(n < max_size) {                           \
       auto c = yyextra->stream->get();              \
-      if(!yyextra->stream->good()) break;           \
-      if(yyextra->stream->eof()) break;             \
+      if(!yyextra->stream->good()){                 \
+        if(n == 0)result = 0;                       \
+        break;                                      \
+      }                                             \
       if (c)                                        \
         buf[n++] = (char)c;                         \
       result = n;                                   \
