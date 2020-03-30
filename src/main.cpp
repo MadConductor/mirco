@@ -162,7 +162,7 @@ void handleOnMsg(vector<unsigned char> *message) {
   }
   vector<RtNoteOnEvent *> *vec = new vector<RtNoteOnEvent *>({});
   lock_guard<mutex> guard(playMutex);
-  playMap[key] = event->clone();
+  playMap[key] = event->clone(); // TODO: fix memory leak
   openNotes[key] = vec;
 }
 
