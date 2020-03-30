@@ -58,7 +58,6 @@ class SequenceParentNode: public SequenceNode {
 
     virtual string toString() override;
     virtual vector<SequenceNode *> getChildren() = 0;
-    virtual RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
     
     virtual bool isAmbiguous() override; 
     virtual SequenceNode *disambiguate(Context e) override;    
@@ -202,11 +201,14 @@ class Chord : public SequenceParentNode {
 class Sequence : public SequenceParentNode {
   public:
     vector<SequenceNode *> children;
+    bool isLoop = false;
 
     Sequence() = default;
     Sequence(vector<SequenceNode *> c);
     Sequence(Definition *d, vector<SequenceNode *> *a);
 
+    void loop() { isLoop = true; }
+    virtual RtEvent *renderRtEvents(unsigned char channel, uint_fast32_t multiplier) override;
     vector<SequenceNode *> getChildren() override { return children; };
     virtual SequenceNode::Type getType() override { return SequenceNode::SEQUENCE; };
 
@@ -316,7 +318,7 @@ class Operation : public AmbiguousSequenceNode, public RtEvent {
     Operation() = default;
     Operation(string o, LhsT *l, RhsT *r);
     Operation(const Operation &obj) 
-      : next(obj.next != nullptr ? obj.next->clone() : nullptr),
+      : next(RtEvent::decideCloneNext(obj)),
       lhs(obj.lhs), 
       rhs(obj.rhs), op(obj.op),
       channel(obj.channel),
@@ -329,7 +331,7 @@ class Operation : public AmbiguousSequenceNode, public RtEvent {
 
     uint_fast32_t getPausePulses() override { return 0; };
     void setNext(RtEvent *n) override { next = n; };
-    RtEvent *getNext() override { return next; };
+    RtEvent *getNext() const override { return next; };
     struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t key) override;
     
     Operation<LhsT, RhsT> *clone() const override {

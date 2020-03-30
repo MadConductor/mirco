@@ -95,17 +95,6 @@ string SequenceParentNode::toString() {
   return res + "}";
 }
 
-RtEvent *SequenceParentNode::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
-  vector<SequenceNode *> children = getChildren();
-  RtNopEvent *start = new RtNopEvent(0);
-
-  for(int i=0; i<children.size(); i++) {
-    RtEvent *cur = children[i]->renderRtEvents(channel, multiplier);
-    start->append(cur);
-  }
-  return start;
-}
-
 SequenceNode *SequenceParentNode::disambiguate(Context extraContext) {
   vector<SequenceNode *> children = getChildren();
   for(int i=0; i<children.size(); i++) {
@@ -735,6 +724,22 @@ Sequence::Sequence(Definition *d, vector<SequenceNode *> *a) {
 }
 
 Sequence::Sequence(vector<SequenceNode *> c) : children(c) {}
+
+
+RtEvent *Sequence::renderRtEvents(unsigned char channel, uint_fast32_t multiplier) {
+  vector<SequenceNode *> children = getChildren();
+  RtNopEvent *start = new RtNopEvent(0);
+  RtEvent *cur; 
+  for(int i=0; i<children.size(); i++) {
+    cur = children[i]->renderRtEvents(channel, multiplier);
+    start->append(cur);
+  }
+  if (isLoop){ 
+    cur->setCloneNext(false);
+    start->append(start);
+  }
+  return start;
+}
 
 // - Operators
 

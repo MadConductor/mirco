@@ -1,11 +1,11 @@
 %{
-  #include <istream>
-  #include <map>
-  #include "../src/lang.hpp"
-  #include "parser.hpp"
-  #include "../src/yytype.hpp"
+#include <istream>
+#include <map>
+#include "../src/lang.hpp"
+#include "parser.hpp"
+#include "../src/yytype.hpp"
 
-  #define YY_EXTRA_TYPE struct scanner_extra_data*
+#define YY_EXTRA_TYPE struct scanner_extra_data*
 
 #define YY_DECL int yylex(YYSTYPE *yylval_param,\
                                   YYLTYPE *llocp,\
@@ -31,7 +31,7 @@
 
 DIGIT [0-9]
 INT [1-9]{DIGIT}*
-IDENTIFIER [a-zA-Z][a-zA-Z0-9_\-]* 
+IDENTIFIER [a-zA-Z][a-zA-Z0-9_]* 
 NOTE [ABCDEFGHabcdefgh](#|b)?[0-9]
 PAUSE [_]
 OPERATOR [\+\-\*\/\=]
@@ -45,9 +45,10 @@ TONE_LITERAL {OCTAVE}|{SEMITONE}|{OCTAVE}{SEMITONE}
 "//".*  ;
 [/][*][^*]*[*]+([^*/][^*]*[*]+)*[/] ;
 
-sequence { return SEQUENCE; }
-default  { return DEFAULT; }
-auto     { return AUTO; }
+"loop"     { return LOOP; }
+"sequence" { return SEQUENCE; }
+"default"  { return DEFAULT; }
+"auto"     { return AUTO; }
 
 {PAUSE} {
   yylval->sval = strdup(yytext);

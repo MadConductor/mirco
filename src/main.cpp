@@ -81,6 +81,8 @@ extern unordered_map<int, RtEvent *> eventMap;
 unordered_map<uint_fast32_t, RtEvent *> playMap;
 unordered_map<int, int> nextPulseMap;
 unordered_map<int, vector<RtNoteOnEvent *>*> openNotes;
+int lastTriggerKey = 60; // MIDI C4
+
 mutex playMutex;
 mutex deltaMutex;
 mutex noteTerminationMutex;
@@ -91,6 +93,14 @@ deque<chrono::nanoseconds> deltas;
 uint_fast32_t numPulses = 0;
 
 //SECTION function definitions ---s-----------------
+
+void deleteEvents(RtEvent *start) {
+  RtEvent *next = start->getNext();
+  if (next != nullptr) {
+    deleteEvents(next);
+  }
+  free(start);
+}
 
 /*
   Sets up autoplay if "auto" was mapped.
@@ -108,6 +118,7 @@ void autoplay() {
   playMap[-1] = event->clone();
   openNotes[-1] = vec;
 }
+
 /*
   Averages the last bar of clock message deltas
   in order to get a steady bpm value.
@@ -165,6 +176,7 @@ void handleClockPulse(vector<unsigned char> *message) {
 */
 void handleOnMsg(vector<unsigned char> *message) {
   unsigned char key = message->at(1);
+  lastTriggerKey = key;
   RtEvent *event;
   try {
     event = eventMap.at(key);
@@ -366,10 +378,13 @@ void outputLoop() {
     auto it = playMapCopy.begin();
     while (it != playMapCopy.end()) {
       uint_fast32_t key = it->first;
+      uint_fast32_t trigger = key;
+       // use last trigger key with autoplay
+      if (key == -1) trigger = lastTriggerKey;
       RtEvent *event = it->second;
 
       // update realtime context
-      rtContext["$trigger"] = new Tone(key);
+      rtContext["$trigger"] = new Tone(trigger);
       // next clock pulse for current key
       int nextPulse;
       try {

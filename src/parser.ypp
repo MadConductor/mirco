@@ -59,14 +59,14 @@ void yyerror(const char *s) {
   vector<Identifier *> *idlistval;
 }
 
-%token DEFAULT AUTO SEQUENCE
+%token DEFAULT AUTO SEQUENCE LOOP
 
 %token <ival>  INT
 %token <idval>  IDENTIFIER
 %token <sval>  NOTE
 %token <toneval>  TONE_LITERAL
 %token <rtresourceval>  RTRESOURCE
-%token <sval>  OPERATOR ENDL PAUSE
+%token <sval>  OPERATOR PAUSE
 
 // unused
 %token <fval>  FLOAT
@@ -313,6 +313,10 @@ sequence:
   }
   | '{' node_list '}' {
     $$ = new Sequence(*$2);
+  }
+  | LOOP sequence {
+    $2->loop();
+    $$ = $2;
   }
 ;
 

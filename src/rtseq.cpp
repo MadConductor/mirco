@@ -11,6 +11,15 @@ void RtEvent::append(RtEvent *next) {
   }
 }
 
+RtEvent *RtEvent::decideCloneNext(const RtEvent &obj) {
+  if (obj.getNext() != nullptr) {
+    if (obj.getCloneNext()) {
+      return obj.getNext()->clone();
+    }
+    return obj.getNext();
+  }
+  return nullptr;
+}
 
 struct RtEventResult RtNopEvent::run(RtMidiOut *m, Context rtContext, uint_fast32_t triggerKey) {
   return (RtEventResult){.next = getNext(), .pausepulses = getPausePulses()};

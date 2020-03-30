@@ -56,16 +56,18 @@ using Context = unordered_map<string, SequenceNode *>;
 //-----------------------------------------------------------------
 class RtNoteOffEvent;
 class RtEvent;
-void deleteEvents(RtEvent*);
 class RtEvent : public object::cloneable<RtEvent> {
   private:
     RtEvent *next = nullptr;
+    bool cloneNext = true;
 
   public:
-
     virtual uint_fast32_t getPausePulses() = 0;
+    void setCloneNext(bool b) { cloneNext = b; };
+    bool getCloneNext() const { return cloneNext; };
+    static RtEvent *decideCloneNext(const RtEvent &obj); 
     virtual void setNext(RtEvent * n) = 0;
-    virtual RtEvent *getNext() = 0;
+    virtual RtEvent *getNext() const = 0;
     virtual struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) = 0;
     virtual void append(RtEvent * next);
 };
@@ -88,11 +90,11 @@ class RtNopEvent : public RtEvent, public object::cloneable<RtNopEvent>  {
     RtNopEvent(uint_fast32_t pulses);
     RtNopEvent(const RtNopEvent &obj) 
     : pausepulses(obj.pausepulses),        
-      next(obj.next != nullptr ? obj.next->clone() : nullptr) {};
+      next(RtEvent::decideCloneNext(obj)) {};
 
     uint_fast32_t getPausePulses() override { return pausepulses; };
     void setNext(RtEvent *n) override { next = n; };
-    RtEvent *getNext() override { return next; };
+    RtEvent *getNext() const override { return next; };
     struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) override;
 
     virtual RtNopEvent *clone() const override {
@@ -112,11 +114,11 @@ class RtNoteOnEvent : public RtEvent, public object::cloneable<RtNoteOnEvent> {
     RtNoteOnEvent(unsigned char channel, unsigned char byte2, unsigned char byte3, uint_fast32_t pulses);
     RtNoteOnEvent(const RtNoteOnEvent &obj)
       : pausepulses(obj.pausepulses), message(obj.message), 
-        next(obj.next != nullptr ? obj.next->clone() : nullptr) {};
+        next(RtEvent::decideCloneNext(obj)) {};
 
     uint_fast32_t getPausePulses() override { return pausepulses; };
     void setNext(RtEvent *n) override { next = n; };
-    RtEvent *getNext() override { return next; };
+    RtEvent *getNext() const override { return next; };
     unsigned char getChannel() const { return message[0] & 0x0f; }
     unsigned char getKey() const { return message[1]; }
     unsigned char getVelocity() const { return message[2]; }
@@ -144,11 +146,11 @@ class RtNoteOffEvent : public RtEvent, public object::cloneable<RtNoteOffEvent> 
       : pausepulses(obj.pausepulses), 
         message(obj.message), 
         legacyMessage(obj.legacyMessage), 
-        next(obj.next != nullptr ? obj.next->clone() : nullptr) {};
+        next(RtEvent::decideCloneNext(obj)) {};
 
     uint_fast32_t getPausePulses() override { return pausepulses; };
     void setNext(RtEvent *n) override { next = n; };
-    RtEvent *getNext() override { return next; };
+    RtEvent *getNext() const override { return next; };
     unsigned char getChannel() const { return message[0] & 0x0f; }
     unsigned char getKey() const { return message[1]; }
     unsigned char getVelocity() const { return message[2]; }
@@ -158,11 +160,3 @@ class RtNoteOffEvent : public RtEvent, public object::cloneable<RtNoteOffEvent> 
       return new RtNoteOffEvent(*this); 
     };
 };
-
-void deleteEvents(RtEvent *start) {
-  RtEvent *next = start->getNext();
-  if (next != nullptr) {
-    deleteEvents(next);
-  }
-  free(start);
-}
