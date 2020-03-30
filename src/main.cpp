@@ -384,11 +384,20 @@ int main(int argc, char* argv[]) {
 
   unpack_cmdline(&GLOBAL_SETTINGS, filename, argc, argv);
 
-  // open mirco file
+  // open mirco file or MCODE argument
 
-  ifstream *ifs = new ifstream();
-  ifs->open(filename, ifstream::in);
-  struct scanner_extra_data scdat {.stream = ifs};
+  istream *is;
+
+  if(GLOBAL_SETTINGS.MCODE.changed){
+    istringstream *iss = new istringstream(*GLOBAL_SETTINGS.MCODE.val);
+    is = iss;
+  } else {
+    ifstream *ifs = new ifstream();
+    ifs->open(filename, ifstream::in);
+    is = ifs;
+  }
+
+  struct scanner_extra_data scdat {.stream = is};
 
   void* scanner;
   yylex_init(&scanner);
