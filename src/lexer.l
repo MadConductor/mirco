@@ -13,11 +13,12 @@
 
 #define YY_INPUT(buf, result, max_size)             \
     int n = 0;                                      \
-    while(n < max_size) {                          \
+    while(n < max_size) {                           \
       auto c = yyextra->stream->get();              \
+      if(!yyextra->stream->good()) break;           \
+      if(yyextra->stream->eof()) break;             \
       if (c)                                        \
         buf[n++] = (char)c;                         \
-      if(!yyextra->stream->good()) break;           \
       result = n;                                   \
     }
 %}
