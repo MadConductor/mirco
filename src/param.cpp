@@ -12,7 +12,7 @@ void unpack_cmdline(struct global_settings *settings, char *&filename, int argc,
     {
         int index = 0;
         int result = getopt_long(argc, argv,
-            "c::b:i:o:a:",
+            settings->optstring,
             settings->LONG_OPTS, &index);
         if (result == -1) break; /* end of list */
         switch (result)
@@ -50,6 +50,9 @@ void unpack_cmdline(struct global_settings *settings, char *&filename, int argc,
               break;
             case 'o':
               settings->OUTPUT_PORT = (uint_fast16_t)atol(optarg);
+              break;
+            case 'm':
+              settings->MCODE = new std::string(optarg);
               break;
             case 0:
             case ':':
