@@ -93,6 +93,22 @@ uint_fast32_t numPulses = 0;
 //SECTION function definitions ---s-----------------
 
 /*
+  Sets up autoplay if "auto" was mapped.
+*/
+void autoplay() {
+  RtEvent *event;
+  try {
+      event = eventMap.at(-1); // default mapping
+  } catch (const std::out_of_range& oor) {
+    return;
+  }
+  
+  vector<RtNoteOnEvent *> *vec = new vector<RtNoteOnEvent *>({});
+  lock_guard<mutex> guard(playMutex);
+  playMap[-1] = event->clone();
+  openNotes[-1] = vec;
+}
+/*
   Averages the last bar of clock message deltas
   in order to get a steady bpm value.
 */
@@ -410,6 +426,8 @@ int main(int argc, char* argv[]) {
   // start input and output threads
   thread inputThread(openMidiIn);
   thread outputThread(outputLoop);
+  
+  autoplay();
 
   printf("\nReading MIDI input ... press <enter> to quit.\n");
   char input;
