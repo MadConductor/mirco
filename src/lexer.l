@@ -93,7 +93,7 @@ TONE_LITERAL {OCTAVE}|{SEMITONE}|{OCTAVE}{SEMITONE}
   return INT;
 }
 
-[\(\)\{\}\|:;,<>]    { return yytext[0]; }
+[\(\)\{\}\|:;,<>=]    { return yytext[0]; }
 
 {OPERATOR} { 
   yylval->sval = strdup(yytext); 

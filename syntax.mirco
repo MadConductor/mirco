@@ -1,13 +1,13 @@
+KICK = F3
+SNARE = G3
 
 sequence seq1(A) {
-    {
-        F0:16, 
-        G0:8,
-        _:8,
-        C0:16, 
-        D0:8,
-        _:8
-    } + A
+    {SNARE, 
+    G0:2,
+    _:2,
+    C0:4, 
+    D0:2,
+    _:2}
 }
 
 sequence seq3() {

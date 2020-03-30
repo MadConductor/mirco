@@ -25,6 +25,7 @@ extern FILE *yyin;
 
 unordered_map<int, RtEvent *> eventMap;
 unordered_map<string, Definition *> defs;
+unordered_map<string, SequenceNode *> vars;
 
 void yyerror(YYLTYPE* yylloc, void*, const char *s) {
 	fprintf(stderr, "Error: (line %d) %s\n", yylloc->first_line, s);
@@ -380,7 +381,7 @@ chord:
 
 sequence_node:
   IDENTIFIER {
-    $$ = (SequenceNode *)$1;
+    $$ = (SequenceNode *)$1->disambiguate(vars);
   } 
   | RTRESOURCE {
     $$ = (SequenceNode *)$1;
@@ -428,14 +429,24 @@ mapping:
   }
 ;
 
+var:
+  IDENTIFIER '=' sequence_node {
+    vars[$1->id] = $3;
+  }
+;
+
 exp:   
   exp definition {
+    }
+  | exp mapping {
+    }
+  | exp var {
   }
-| exp mapping {
-  }
-| definition {
-  }
-| mapping {
+  | definition {
+    }
+  | mapping {
+    }
+  | var {
   }
 ;
 %%
