@@ -32,6 +32,7 @@
 #include <queue>
 #include <fstream>
 #include <sstream>
+#include <csignal>
 
 #include <rtmidi/RtMidi.h>
 
@@ -409,6 +410,14 @@ void outputLoop() {
   }
 }
 
+void handleAbortSignal(int parameter){//to be installed by signal()
+
+
+
+}
+
+
+
 //SECTION main -----------------------------------
 int main(int argc, char* argv[]) {
   char *filename;
@@ -425,6 +434,7 @@ int main(int argc, char* argv[]) {
   } else {
     ifstream *ifs = new ifstream();
     ifs->open(filename, ifstream::in);
+    //TODO handle file error
     is = ifs;
   }
 
@@ -441,7 +451,10 @@ int main(int argc, char* argv[]) {
   // start input and output threads
   thread inputThread(openMidiIn);
   thread outputThread(outputLoop);
-  
+
+  if (signal(SIGINT, handleAbortSignal) == SIG_ERR) {
+    // TODO: error handling, could not register signal handler
+  }
   autoplay();
 
   printf("\nReading MIDI input ... press <enter> to quit.\n");
