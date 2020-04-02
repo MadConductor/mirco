@@ -22,17 +22,18 @@
 #include "stdio.h"
 
 #include <map>
-#include <mutex>
-#include <vector>
-#include <cstdlib>
-#include <thread>
-#include <atomic>
-#include <chrono>
-#include <thread>
 #include <queue>
+#include <vector>
+
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
+
 #include <csignal>
+#include <chrono>
+#include <thread>
+#include <mutex>
+#include <atomic>
 #include <condition_variable>
 
 #include <rtmidi/RtMidi.h>
