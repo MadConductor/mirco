@@ -33,6 +33,7 @@
 #include <fstream>
 #include <sstream>
 #include <csignal>
+#include <condition_variable>
 
 #include <rtmidi/RtMidi.h>
 
@@ -55,18 +56,42 @@ using clk = chrono::high_resolution_clock;
 struct global_settings GLOBAL_SETTINGS;
 
 class globalAtomics {
-  atomic<bool> running;
-  atomic<uint_fast16_t> internal_counter; // internal 960 PPQN counter
-  atomic<unsigned char> external_counter;
+  atomic<int> running;
+  std::condition_variable statechange;
+  std::mutex waitmtx;
 
   public:
-  globalAtomics(bool runstate){
+  enum {
+        PLAY,
+        PREPAUSE,
+        PAUSE,
+        PRESTOP,
+        STOP,
+        PREABORT,//unused but hey
+        ABORT
+  };
+
+  globalAtomics(int runstate){
     running.store(runstate);
-    internal_counter.store(0);
-    external_counter.store(0);
   }
 
-} GLOBAL_ATOMICS(true);
+  int getRunState(){
+    return running.load();
+  }
+
+  void setRunState(int s){
+    running.store(s);//may be invalid, don't store invalid runstates!
+    std::unique_lock<std::mutex> lck (waitmtx);
+    statechange.notify_all();
+  }
+
+  int waitForStateChange(){
+    std::unique_lock<std::mutex> lck (waitmtx);
+    statechange.wait(lck);
+    return getRunState();
+  }
+
+} GLOBAL_ATOMICS(globalAtomics::PLAY);
 
 
 
@@ -200,24 +225,27 @@ void handleOnMsg(vector<unsigned char> *message) {
   all currently active notes off or replacing
   the playing sequence with an RtNopEvent.
 */
-void handleOffMsg(vector<unsigned char> *message) {
-  unsigned char key = message->at(1);
+void turnKeyOff(unsigned char key) {
   vector<RtNoteOnEvent *> *on;
   lock_guard<mutex> tGuard(noteTerminationMutex);
   try {
     on = openNotes.at(key);
-  } catch (const std::out_of_range& oor) {
+  } catch (const std::out_of_range &oor) {
     printf("Input device sent unprecedented Note Off Message\n");
     return;
   }
   RtNopEvent *start = new RtNopEvent(0);
-  // TODO: thread safety
-  for(int i=0; i<(on->size()); i++) {
+  for (int i = 0; i < (on->size()); i++) {
     RtNoteOffEvent *off = new RtNoteOffEvent(on->at(i));
     start->append(off);
   }
   lock_guard<mutex> pGuard(playMutex);
   playMap[key] = start;
+}
+
+void handleOffMsg(vector<unsigned char> *message) {
+  unsigned char key = message->at(1);
+  turnKeyOff(key);
 }
 
 /*
@@ -259,7 +287,7 @@ void onmessage(double deltatime, vector<unsigned char> *message, void *userData)
 /*
   Opens RtMidiIn
 */
-RtMidiIn *openMidiIn() {
+void openMidiIn() {
   RtMidiIn *midiin = new RtMidiIn(
     GLOBAL_SETTINGS.BACKEND.val,
     "Mirco Sequencer"
@@ -287,7 +315,13 @@ RtMidiIn *openMidiIn() {
       debug("Opened midi input port: %s\n", midiin->getPortName(GLOBAL_SETTINGS.INPUT_PORT.val).c_str());
     }
   }
-  return midiin;
+
+  while (GLOBAL_ATOMICS.waitForStateChange() != globalAtomics::ABORT) {}
+
+  midiin->closePort();
+  midiin->cancelCallback();
+  delete midiin;
+
 }
 
 /*
@@ -359,6 +393,17 @@ void outputLoop() {
   unordered_map<uint_fast32_t, RtEvent *> playMapCopy(playMap);
 
   while (true) {
+    switch(GLOBAL_ATOMICS.getRunState()){
+      case globalAtomics::ABORT: {
+        std::vector<unsigned char> msg {MIDI_CHAN_MODE_BYTE, MIDI_CHAN_OFF_BYTE, 0x00};
+        midiout->sendMessage(&msg);
+        return;
+      }
+      case globalAtomics::PLAY:
+      default:
+        break;
+    }
+
     if (totalPulses % (INTERNAL_PPQN*4) == 0) {
       // reestimate bpm every bar (lo-pass bitcrusher :P)
       bpm = estimateBpm();
@@ -411,9 +456,7 @@ void outputLoop() {
 }
 
 void handleAbortSignal(int parameter){//to be installed by signal()
-
-
-
+  GLOBAL_ATOMICS.setRunState(globalAtomics::ABORT);
 }
 
 
@@ -457,9 +500,6 @@ int main(int argc, char* argv[]) {
   }
   autoplay();
 
-  printf("\nReading MIDI input ... press <enter> to quit.\n");
-  char input;
-  std::cin.get(input);
   inputThread.join();
   outputThread.join();
 }
