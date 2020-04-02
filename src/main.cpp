@@ -397,6 +397,10 @@ void outputLoop() {
       case globalAtomics::ABORT: {
         std::vector<unsigned char> msg {MIDI_CHAN_MODE_BYTE, MIDI_CHAN_OFF_BYTE, 0x00};
         midiout->sendMessage(&msg);
+        for(int n=0; n<128; n++){
+          std::vector<unsigned char> msg{MIDI_NOTE_OFF_BYTE, (unsigned char)n, 64};
+          midiout->sendMessage(&msg);
+        }
         return;
       }
       case globalAtomics::PLAY:
