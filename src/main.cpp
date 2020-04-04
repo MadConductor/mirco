@@ -19,7 +19,6 @@
 
 //SECTION includes -------------------------------
 
-#include "stdio.h"
 
 #include <map>
 #include <queue>
@@ -28,6 +27,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
+#include <cstdio>
 
 #include <csignal>
 #include <chrono>
@@ -63,13 +63,13 @@ class globalAtomics {
 
   public:
   enum {
-        PLAY,
-        PREPAUSE,
-        PAUSE,
-        PRESTOP,
-        STOP,
+        PLAY,//"normal" runstate
+        START,//MIDI_START_BYTE -> START (resets the sequence) -> PLAY
+        CONTINUE,//MIDI_CONTINUE_BYTE -> CONTINUE (no sequence reset) -> PLAY
+        PRESTOP,//MIDI_STOP_BYTE -> PRESTOP -> STOP
+        STOP,//"halted" runstate
         PREABORT,//unused but hey
-        ABORT
+        ABORT//all notes off immediately, abort program
   };
 
   globalAtomics(int runstate){
