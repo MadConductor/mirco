@@ -66,8 +66,8 @@ class globalAtomics {
         PLAY,//"normal" runstate
         START,//MIDI_START_BYTE -> START (resets the sequence) -> PLAY
         CONTINUE,//MIDI_CONTINUE_BYTE -> CONTINUE (no sequence reset) -> PLAY
-        PRESTOP,//MIDI_STOP_BYTE -> PRESTOP -> STOP
-        STOP,//"halted" runstate
+        STOP,//MIDI_STOP_BYTE -> STOP (finish current notes) -> HALT
+        HALT,//"halted" runstate
         PREABORT,//unused but hey
         ABORT//all notes off immediately, abort program
   };
@@ -260,12 +260,15 @@ void onmessage(double deltatime, vector<unsigned char> *message, void *userData)
       break;
     case MIDI_START_BYTE:
       debug("Received Midi Clock Start Message \n");
+      GLOBAL_ATOMICS.setRunState(globalAtomics::START);
       break;
     case MIDI_CONTINUE_BYTE:
       debug("Received Midi Clock Continue Message \n");
+      GLOBAL_ATOMICS.setRunState(globalAtomics::CONTINUE);
       break;
     case MIDI_STOP_BYTE:
       debug("Received Midi Clock Stop Message \n");
+      GLOBAL_ATOMICS.setRunState(globalAtomics::STOP);
       break;
     case MIDI_POS_PTR_BYTE:
       debug("Received Midi Position Pointer Message \n");
@@ -411,6 +414,13 @@ void outputLoop() {
         }
         return;
       }
+      case globalAtomics::HALT:
+        while(GLOBAL_ATOMICS.waitForStateChange() == globalAtomics::HALT){}
+        continue;//go right into the runState switch again
+        break;
+      case globalAtomics::CONTINUE:
+        GLOBAL_ATOMICS.setRunState(globalAtomics::PLAY);
+        break;
       case globalAtomics::PLAY:
       default:
         break;
