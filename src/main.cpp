@@ -414,6 +414,10 @@ void outputLoop() {
         }
         return;
       }
+      case globalAtomics::STOP:
+        for(unsigned char k=0;k<128;k++){turnKeyOff(k);}
+        GLOBAL_ATOMICS.setRunState(globalAtomics::HALT);//TODO halt only after all notes played ?
+        break;
       case globalAtomics::HALT:
         while(GLOBAL_ATOMICS.waitForStateChange() == globalAtomics::HALT){}
         continue;//go right into the runState switch again
