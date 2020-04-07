@@ -274,7 +274,7 @@ void onmessage(double deltatime, vector<unsigned char> *message, void *userData)
       debug("Received Midi Position Pointer Message \n");
       break;
     case MIDI_NOTE_ON_BYTE:
-      handleOnMsg(message);
+      if(GLOBAL_ATOMICS.getRunState() != globalAtomics::HALT) handleOnMsg(message);
       break;
     case MIDI_NOTE_OFF_BYTE://TODO: add "channel notes off" handler
       handleOffMsg(message);
@@ -385,6 +385,19 @@ RtEventResult runEvent(RtEvent *event, RtMidiOut *midiout, Context *rtContext, u
   return res;
 }
 
+void allNotesHardOff(RtMidiOut *midiout){
+  std::vector<unsigned char> msg{MIDI_CHAN_MODE_BYTE, MIDI_CHAN_OFF_BYTE, 0x00};
+  midiout->sendMessage(&msg);
+  for (int n = 0; n < 128; n++) {
+    std::vector<unsigned char> msg{MIDI_NOTE_ON_BYTE,  (unsigned char)n, 0,
+                                   MIDI_NOTE_OFF_BYTE, (unsigned char)n, 64};
+    midiout->sendMessage(&msg);
+  }
+  return;
+}
+
+
+
 /*
   Midi output loop
 */
@@ -398,30 +411,23 @@ void outputLoop() {
 
   while (true) {
     switch(GLOBAL_ATOMICS.getRunState()){
-      case globalAtomics::ABORT: {
-        std::vector<unsigned char> msg {MIDI_CHAN_MODE_BYTE, MIDI_CHAN_OFF_BYTE, 0x00};
-        midiout->sendMessage(&msg);
-        for(int n=0; n<128; n++){
-          std::vector<unsigned char> msg{
-              MIDI_NOTE_ON_BYTE,
-              (unsigned char)n,
-              0,
-              MIDI_NOTE_OFF_BYTE,
-              (unsigned char)n,
-              64
-          };
-          midiout->sendMessage(&msg);
-        }
-        return;
-      }
+      case globalAtomics::ABORT:
+        allNotesHardOff(midiout);
+        return;//exit outputLoop
       case globalAtomics::STOP:
-        for(unsigned char k=0;k<128;k++){turnKeyOff(k);}
-        GLOBAL_ATOMICS.setRunState(globalAtomics::HALT);//TODO halt only after all notes played ?
-        break;
+        allNotesHardOff(midiout);
+        GLOBAL_ATOMICS.setRunState(globalAtomics::HALT);
+        //break;//immediate fallthrough
       case globalAtomics::HALT:
         while(GLOBAL_ATOMICS.waitForStateChange() == globalAtomics::HALT){}
         continue;//go right into the runState switch again
         break;
+      case globalAtomics::START:
+        for(unsigned char i = 0; i<128; i++){
+          turnKeyOff(i);
+        }
+        autoplay();
+        //nobreak;
       case globalAtomics::CONTINUE:
         GLOBAL_ATOMICS.setRunState(globalAtomics::PLAY);
         break;
