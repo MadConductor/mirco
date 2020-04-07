@@ -254,7 +254,7 @@ void handleOffMsg(vector<unsigned char> *message) {
 */
 void onmessage(double deltatime, vector<unsigned char> *message, void *userData) {
   unsigned char status = message->at(0);
-  switch(status) {
+  switch(status) {//TODO channelify
     case MIDI_TIME_CLOCK_BYTE:
       if(GLOBAL_SETTINGS.FOLLOW_INPUT_CLOCK.val)handleClockPulse(message);
       break;
@@ -276,7 +276,7 @@ void onmessage(double deltatime, vector<unsigned char> *message, void *userData)
     case MIDI_NOTE_ON_BYTE:
       handleOnMsg(message);
       break;
-    case MIDI_NOTE_OFF_BYTE:
+    case MIDI_NOTE_OFF_BYTE://TODO: add "channel notes off" handler
       handleOffMsg(message);
       break;
     case MIDI_POLY_AFTER_BYTE:
@@ -523,8 +523,8 @@ int main(int argc, char* argv[]) {
 
   if (signal(SIGINT, handleAbortSignal) == SIG_ERR) {
     // TODO: error handling, could not register signal handler
-  }
-  autoplay();
+  }//TODO use sigaction if available
+  autoplay();//TODO initial play-state according to cmdline
 
   inputThread.join();
   outputThread.join();
