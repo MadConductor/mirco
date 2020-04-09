@@ -51,7 +51,7 @@ using clk = chrono::high_resolution_clock;
 
 #define INTERNAL_PPQN MIDI_PULSES_PQN
 #define NS_MIN (1000ULL * 1000 * 1000 * 60)
-#define KERNAL_MS 20
+#define KERNEL_MS 20
 
 //SECTION global value structures ----------------
 
@@ -492,8 +492,8 @@ void outputLoop() {
     // busy wait until next internal pulse
     // TODO: determine wait method according to kernel features
 
-    if((clk::now() - nextPulseNs) > std::chrono::milliseconds(KERNAL_MS)){
-      this_thread::sleep_for((clk::now() - nextPulseNs) - std::chrono::milliseconds(KERNAL_MS));
+    if((clk::now() - nextPulseNs) > std::chrono::milliseconds(KERNEL_MS)){
+      this_thread::sleep_for((clk::now() - nextPulseNs) - std::chrono::milliseconds(KERNEL_MS));
     }
 
 
