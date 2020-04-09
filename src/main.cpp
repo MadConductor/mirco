@@ -67,6 +67,7 @@ class globalAtomics {
         PLAY,//"normal" runstate
         START,//MIDI_START_BYTE -> START (resets the sequence) -> PLAY
         CONTINUE,//MIDI_CONTINUE_BYTE -> CONTINUE (no sequence reset) -> PLAY
+        SLEEP,//output loop skipping pulses
         STOP,//MIDI_STOP_BYTE -> STOP (finish current notes) -> HALT
         HALT,//"halted" runstate
         PREABORT,//unused but hey
@@ -282,6 +283,7 @@ void onmessage(double deltatime, vector<unsigned char> *message, void *userData)
       break;
     case MIDI_NOTE_ON_BYTE:
       if(GLOBAL_ATOMICS.getRunState() != globalAtomics::HALT) handleOnMsg(message);
+      if(GLOBAL_ATOMICS.getRunState() == globalAtomics::SLEEP) GLOBAL_ATOMICS.setRunState(globalAtomics::PLAY);
       break;
     case MIDI_NOTE_OFF_BYTE://TODO: add "channel notes off" handler
       handleOffMsg(message);
