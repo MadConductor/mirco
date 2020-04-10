@@ -197,7 +197,7 @@ void handleClockPulse(vector<unsigned char> *message) {
 
   storeDelta(delta);
   if (numPulses % (GLOBAL_SETTINGS.INPUT_PPQN.val * 4) == 0) {
-    printf("\rEstimated BPM: %f", estimateBpm());
+    debug("\rEstimated BPM: %f", estimateBpm());
   }
 
   lastPulse = now;
@@ -414,18 +414,29 @@ void outputLoop() {
   RtMidiOut *midiout = openMidiOut();
   // stores how many internal clock pulses have passed
   uint_fast32_t totalPulses = 0;
+  uint_fast32_t estimatePulses = 0;
   float bpm = estimateBpm();
   // local copy of the playmap (concurrency)
   unordered_map<uint_fast32_t, RtEvent *> playMapCopy(playMap);
+
+  chrono::microseconds sleeptime = chrono::microseconds(0);
+  auto lastpulse = clk::now();
 
   while (true) {
     switch(GLOBAL_ATOMICS.getRunState()){
       case globalAtomics::ABORT:
         allNotesHardOff(midiout);
         return;//exit outputLoop
+      case globalAtomics::SLEEP:
+        if(GLOBAL_ATOMICS.waitMsForStateChange(sleeptime) == globalAtomics::SLEEP){
+          GLOBAL_ATOMICS.setRunState(globalAtomics::PLAY);
+        }
+        continue;
+        break;
       case globalAtomics::STOP:
         allNotesHardOff(midiout);
         GLOBAL_ATOMICS.setRunState(globalAtomics::HALT);
+        //TODO stop clocks
         //break;//immediate fallthrough
       case globalAtomics::HALT:
         while(GLOBAL_ATOMICS.waitForStateChange() == globalAtomics::HALT){}
@@ -445,10 +456,22 @@ void outputLoop() {
         break;
     }
 
-    if (totalPulses % (INTERNAL_PPQN*4) == 0) {
-      // reestimate bpm every bar (lo-pass bitcrusher :P)
+    uint_fast32_t pulseDelay = (NS_MIN / (bpm * INTERNAL_PPQN));
+    uint_fast32_t jump = (uint_fast32_t)((clk::now() - lastpulse)/chrono::microseconds(pulseDelay));
+    totalPulses += jump;
+    estimatePulses += jump;
+
+    if (estimatePulses >= (INTERNAL_PPQN*4)) {
+      // reestimate bpm every bar or so (lo-pass bitcrusher :P)
       bpm = estimateBpm();
+      estimatePulses = 0;
     }
+
+    while(clk::now() < (lastpulse + ((jump+1)*chrono::microseconds(pulseDelay)))){}
+    lastpulse = clk::now();
+    totalPulses++;
+    estimatePulses++;
+
     if (true) { // just a scope for the lock_guard
       lock_guard<mutex> guard(playMutex);
       playMapCopy = unordered_map<uint_fast32_t, RtEvent *>(playMap);
@@ -458,7 +481,6 @@ void outputLoop() {
 
     // calculate when the next internal clock
     // pulse will happen in nanoseconds
-    uint_fast32_t pulseDelay = (NS_MIN / (bpm * INTERNAL_PPQN));
     auto nextPulseNs = clk::now() + chrono::nanoseconds(pulseDelay);
 
     // iterate over playMap
@@ -486,19 +508,30 @@ void outputLoop() {
       }
       it++;
     }
-    totalPulses++;
 
     //if permitted, sleep for a while
     // busy wait until next internal pulse
     // TODO: determine wait method according to kernel features
+    uint_fast32_t idlepulses=INTERNAL_PPQN;
+    it = playMapCopy.begin();
+    while(it != playMapCopy.end()){
+      uint_fast32_t key = it->first;
+      try {
+        idlepulses = (idlepulses > nextPulseMap.at(key)) ? nextPulseMap.at(key) : idlepulses;
+      } catch (const std::out_of_range &oor) {
+        idlepulses = 0;
+      }
+      it++;
+    }
 
-    if((clk::now() - nextPulseNs) > std::chrono::milliseconds(KERNEL_MS)){
-      this_thread::sleep_for((clk::now() - nextPulseNs) - std::chrono::milliseconds(KERNEL_MS));
+    if((idlepulses * pulseDelay) > KERNEL_MS){
+      sleeptime = chrono::microseconds((idlepulses * pulseDelay / 1000) - KERNEL_MS);
+      //debug("sleeptime =%d", sleeptime);
+      GLOBAL_ATOMICS.setRunState(globalAtomics::SLEEP);
     }
 
 
-    while (clk::now() < nextPulseNs) {}
-    // this_thread::sleep_until(nextPulseNs);
+
   }
 }
 
