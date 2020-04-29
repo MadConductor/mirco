@@ -205,31 +205,6 @@ void handleClockPulse(vector<unsigned char> *message) {
 }
 
 /*
-  Handles "Note On" message by looking up
-  the mapped sequence for the trigger note
-  and storing it in the playMap.
-*/
-void handleOnMsg(vector<unsigned char> *message) {
-  unsigned char key = message->at(1);
-  lastTriggerKey = key;
-  RtEvent *event;
-  try {
-    event = eventMap.at(key);
-  } catch (const std::out_of_range& oor) {
-    try {
-      event = eventMap.at(-2); // default mapping
-    } catch (const std::out_of_range& oor) {
-      return;
-      
-    }
-  }
-  vector<RtNoteOnEvent *> *vec = new vector<RtNoteOnEvent *>({});
-  lock_guard<mutex> guard(playMutex);
-  playMap[key] = event->clone();
-  openNotes[key] = vec;
-}
-
-/*
   Handles "Note Off" message by shutting
   all currently active notes off or replacing
   the playing sequence with an RtNopEvent.
@@ -255,6 +230,30 @@ void turnKeyOff(unsigned char key) {
 void handleOffMsg(vector<unsigned char> *message) {
   unsigned char key = message->at(1);
   turnKeyOff(key);
+}
+
+/*
+  Handles "Note On" message by looking up
+  the mapped sequence for the trigger note
+  and storing it in the playMap.
+*/
+void handleOnMsg(vector<unsigned char> *message) {
+  unsigned char key = message->at(1);
+  lastTriggerKey = key;
+  RtEvent *event;
+  try {
+    event = eventMap.at(key);
+  } catch (const std::out_of_range& oor) {
+    try {
+      event = eventMap.at(-2); // default mapping
+    } catch (const std::out_of_range& oor) {
+      return;
+    }
+  }
+  vector<RtNoteOnEvent *> *vec = new vector<RtNoteOnEvent *>({});
+  lock_guard<mutex> guard(playMutex);
+  playMap[key] = event->clone();
+  openNotes[key] = vec;
 }
 
 /*

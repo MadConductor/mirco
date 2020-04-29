@@ -23,4 +23,4 @@ sequence seq4() { $trigger + {
 
 // test comment
 
-default: loop seq1($trigger)
+default: seq1($trigger)
