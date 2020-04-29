@@ -30,17 +30,18 @@ Run `make`.
 
 ### Running:
 
-Run `./mirco syntax.mirco <args>`.
+Run `./mirco examples/syntax1.mirco <args>`.
 
-Edit `syntax.mirco`!
+Edit `syntax1.mirco`!
 
 ## Command Line Arguments:
 
 ### --follow-clk
 
 If set mirco will try to match the speed
-of the incoming midi clock. 
-(Mirco assumes 24 midi clock pulses per quarter note)
+of the incoming midi clock.
+
+Mirco defaults to 24 midi clock pulses per quarter note.
 
 ### --bpm
 
@@ -82,7 +83,12 @@ If the specified index does not exist mirco will
 wait until it is available.
 For more control we recommend something like
 [Catia](https://kx.studio/Applications:Catia) or
-[Claudia](https://kx.studio/Applications:Claudia) 
+[Claudia](https://kx.studio/Applications:Claudia)
+
+### --mcode="..."
+
+If specified, the given string is parsed as a mirco expression
+and the file can be omitted and is ignored if given.
 
 ## Syntax
 

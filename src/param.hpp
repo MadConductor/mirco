@@ -34,7 +34,7 @@ using pstr = param<std::string*>;
 static RtMidi::Api rmau = RtMidi::Api::UNSPECIFIED;
 
 #define rarg required_argument
-#define oarg required_argument
+#define oarg optional_argument
 #define narg no_argument
 
 struct global_settings {
