@@ -72,7 +72,7 @@ class RtEvent : public object::cloneable<RtEvent> {
     static RtEvent *decideCloneNext(const RtEvent &obj); 
     virtual void setNext(RtEvent * n) = 0;
     virtual RtEvent *getNext() const = 0;
-    virtual struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) = 0;
+    virtual struct RtEventResult run(RtMidiOut *m, Context r, int_fast32_t triggerKey) = 0;
     virtual void append(RtEvent * next);
 };
 
@@ -99,7 +99,7 @@ class RtNopEvent : public RtEvent, public object::cloneable<RtNopEvent>  {
     uint_fast32_t getPausePulses() override { return pausepulses; };
     void setNext(RtEvent *n) override { next = n; };
     RtEvent *getNext() const override { return next; };
-    struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) override;
+    struct RtEventResult run(RtMidiOut *m, Context r, int_fast32_t triggerKey) override;
 
     virtual RtNopEvent *clone() const override {
       return new RtNopEvent(*this); 
@@ -127,7 +127,7 @@ class RtNoteOnEvent : public RtEvent, public object::cloneable<RtNoteOnEvent> {
     unsigned char getKey() const { return message[1]; }
     unsigned char getVelocity() const { return message[2]; }
     bool isKey(unsigned char key);
-    struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) override;
+    struct RtEventResult run(RtMidiOut *m, Context r, int_fast32_t triggerKey) override;
 
     RtNoteOnEvent *clone() const override {
       return new RtNoteOnEvent(*this); 
@@ -158,7 +158,7 @@ class RtNoteOffEvent : public RtEvent, public object::cloneable<RtNoteOffEvent> 
     unsigned char getChannel() const { return message[0] & 0x0f; }
     unsigned char getKey() const { return message[1]; }
     unsigned char getVelocity() const { return message[2]; }
-    struct RtEventResult run(RtMidiOut *m, Context r, uint_fast32_t triggerKey) override;
+    struct RtEventResult run(RtMidiOut *m, Context r, int_fast32_t triggerKey) override;
 
     RtNoteOffEvent *clone() const override {
       return new RtNoteOffEvent(*this); 

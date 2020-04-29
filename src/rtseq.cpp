@@ -21,7 +21,7 @@ RtEvent *RtEvent::decideCloneNext(const RtEvent &obj) {
   return nullptr;
 }
 
-struct RtEventResult RtNopEvent::run(RtMidiOut *m, Context rtContext, uint_fast32_t triggerKey) {
+struct RtEventResult RtNopEvent::run(RtMidiOut *m, Context rtContext, int_fast32_t triggerKey) {
   return (RtEventResult){.next = getNext(), .pausepulses = getPausePulses()};
 }
 
@@ -41,7 +41,7 @@ RtNoteOnEvent::RtNoteOnEvent(unsigned char channel,
   pausepulses = pulses;
 }
 
-struct RtEventResult RtNoteOnEvent::run(RtMidiOut *m, Context rtContext, uint_fast32_t triggerKey) {
+struct RtEventResult RtNoteOnEvent::run(RtMidiOut *m, Context rtContext, int_fast32_t triggerKey) {
   lock_guard<mutex> tGuard(noteTerminationMutex);
   openNotes[triggerKey]->push_back(this->clone());
   m->sendMessage(&message);
@@ -81,16 +81,18 @@ RtNoteOffEvent::RtNoteOffEvent(RtNoteOnEvent *on) {
   legacyMessage.push_back(byte2);
   legacyMessage.push_back(0);
 }
-struct RtEventResult RtNoteOffEvent::run(RtMidiOut *m, Context rtContext, uint_fast32_t triggerKey) {
+struct RtEventResult RtNoteOffEvent::run(RtMidiOut *m, Context rtContext, int_fast32_t triggerKey) {
   lock_guard<mutex> tGuard(noteTerminationMutex);
   m->sendMessage(&message);
   m->sendMessage(&legacyMessage);
-  vector<RtNoteOnEvent *> *on = openNotes[triggerKey];
-  for(int i=0; i<(on->size()); i++) { // iterate over openNotes
-    // delete event if it was terminated by this one
-    RtNoteOnEvent *event = on->at(i);
-    if (event->isKey(this->getKey()))
-      on->erase(on->begin() + i); delete event;
+  if (triggerKey >= 0) {
+    vector<RtNoteOnEvent *> *on = openNotes[triggerKey];
+    for(int i=0; i<(on->size()); i++) { // iterate over openNotes
+      // delete event if it was terminated by this one
+      RtNoteOnEvent *event = on->at(i);
+      if (event->isKey(this->getKey()))
+        on->erase(on->begin() + i); delete event;
+    }
   }
   return (RtEventResult){.next = getNext(), .pausepulses = getPausePulses()};
 }
