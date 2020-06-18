@@ -1,3 +1,5 @@
+.ccls
+.ccls-cache/
 .vscode/
 .history/
 .clangd/
